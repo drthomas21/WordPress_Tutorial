@@ -14,7 +14,7 @@
     "post_mime_type" => "image",
     "orderby" => "menu_order",
     "order" => "ASC"
-]) as $Attachment): $data = wp_get_attachment_image_src($Attachment->ID,'original'); ?>
+]) as $idx => $Attachment): $data = wp_get_attachment_image_src($Attachment->ID,($idx == 0?'original':'full')); ?>
 <meta property="og:image" content="<?= $data[0]; ?>">
 <meta property="og:image:width" content="<?= $data[1]; ?>">
 <meta property="og:image:height" content="<?= $data[2]; ?>">
