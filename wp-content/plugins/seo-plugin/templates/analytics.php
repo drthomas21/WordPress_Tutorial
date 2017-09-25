@@ -7,3 +7,5 @@
 
   gtag('config', 'UA-29594513-13');
 </script>
+<!-- Facebook App ID -->
+<meta property="fb:app_id" content="1996617927234073">
