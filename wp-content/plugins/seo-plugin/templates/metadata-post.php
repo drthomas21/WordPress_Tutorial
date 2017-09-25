@@ -9,13 +9,13 @@
 <link rel="canonical" href="<?= get_permalink(); ?>">
 
 <!-- Image Data -->
-<?php foreach(get_children([
+<?php $c = 0; foreach(get_children([
     "post_parent" => $post->ID,
     "post_mime_type" => "image",
     "orderby" => "menu_order",
     "order" => "ASC"
-]) as $idx => $Attachment): $data = wp_get_attachment_image_src($Attachment->ID,($idx == 0?'original':'full')); ?>
+]) as $idx => $Attachment): $data = wp_get_attachment_image_src($Attachment->ID,($c == 0 ?'original':'large')); ?>
 <meta property="og:image" content="<?= $data[0]; ?>">
 <meta property="og:image:width" content="<?= $data[1]; ?>">
 <meta property="og:image:height" content="<?= $data[2]; ?>">
-<?php endforeach; ?>
+<?php $c++; endforeach; ?>
