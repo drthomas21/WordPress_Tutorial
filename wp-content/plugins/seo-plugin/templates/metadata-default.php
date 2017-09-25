@@ -17,5 +17,5 @@
 <meta property="og:description" content="<?= get_bloginfo('description'); ?>">
 <meta property="description" content="<?= get_bloginfo('description'); ?>">
 <?php endif; ?>
-<meta name="og:url" content="<?= site_url($_SERVER['REQUEST_URI']); ?>">
+<meta property="og:url" content="<?= site_url($_SERVER['REQUEST_URI']); ?>">
 <link rel="canonical" href="<?= site_url($_SERVER['REQUEST_URI']); ?>">
