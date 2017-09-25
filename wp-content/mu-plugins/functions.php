@@ -26,8 +26,8 @@ function get_keywords(WP_Post $Post = null, int $limit = 15): array {
 
     array_walk($words,function($word) use (&$map, $arrBannedWords) {
         $val = strtolower($word);
-        if(!in_array($word,$arrBannedWords)) {
-            if(!array_key_exists($word,$map)) {
+        if(!in_array($val,$arrBannedWords)) {
+            if(!array_key_exists($val,$map)) {
                 $map[$val] = 0;
             }
 
