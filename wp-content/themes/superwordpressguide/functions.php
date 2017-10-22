@@ -72,11 +72,11 @@ add_action("wp_enqueue_scripts",function() {
 
     //WP Enqueue Script
     wp_enqueue_script("jquery",get_asset_url("js/jquery.min.js"),array(),"3.2.1",true);
-    wp_enqueue_script("angularjs",get_asset_url("js/angular.min.js"),array("jquery"),"1.6.6",true);
-    wp_enqueue_script("angularjs-sanitize",get_asset_url("js/angular-sanitize.min.js"),array("angularjs"),"1.6.6",true);
+    //wp_enqueue_script("angularjs",get_asset_url("js/angular.min.js"),array("jquery"),"1.6.6",true);
+    //wp_enqueue_script("angularjs-sanitize",get_asset_url("js/angular-sanitize.min.js"),array("angularjs"),"1.6.6",true);
     wp_enqueue_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",true);
     wp_enqueue_script("bootstrap",get_asset_url("js/bootstrap.min.js"),array("jquery","popper"),"4.0.0",true);
-    wp_enqueue_script("main",get_asset_url("js/main.js"),array("jquery","angularjs","angularjs-sanitize","bootstrap"),THEME_VERSION,true);
+    //wp_enqueue_script("main",get_asset_url("js/main.js"),array("jquery","bootstrap"),THEME_VERSION,true);
 
     //WP Enqueue Styles
     wp_enqueue_style("boostrap",get_asset_url("css/bootstrap.min.css"),array(),"4.0.0","all");
