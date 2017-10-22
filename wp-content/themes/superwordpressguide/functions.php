@@ -62,7 +62,7 @@ function the_tag_link() {
 
 
 add_action("after_setup_theme",function() {
-    add_theme_support('post-thumbnail');
+    add_theme_support('post-thumbnails');
     add_theme_support('html5');
     add_theme_support('automatic-feed-links');
 });
