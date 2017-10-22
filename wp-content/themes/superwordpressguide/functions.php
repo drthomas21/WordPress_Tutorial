@@ -5,9 +5,11 @@ function get_asset_url(string $path): string {
     return get_template_directory_uri().'/assets/'.trim($path," \t\n\r\0\x0B/");
 }
 
-function get_the_featured_content(): string {
+function get_the_leading_asset(string $postContent = ""): string {
+    if(empty($postContent)) {
+        $postContent = apply_filters("the_content",get_the_content());
+    }
     $content = "";
-    $postContent = apply_filters("the_content",get_the_content());
 
     if(has_post_thumbnail()) {
         $content = preg_replace("/class\s*=\s*[\'\"][A-Za-z0-9\-\_\s]+[\'\"]/","class='\$1 img-fluid'",get_the_post_thumbnail(null,"large"));
@@ -18,8 +20,12 @@ function get_the_featured_content(): string {
         }
     }
 
-    $content .= "<p class='text-left'>".get_the_excerpt()."</p>";
     return $content;
+}
+
+function get_the_featured_content(): string {
+    $postContent = apply_filters("the_content",get_the_content());
+    return get_the_leading_asset($postContent) . "<p class='text-left'>".get_the_excerpt()."</p>";;
 }
 
 function the_featured_content() {
