@@ -10,7 +10,7 @@ body {
 }
 
 .homepage.blog-header {
-    background: url(assets/img/blog-header.jpg);
+    background: url(assets/img/blog-header-4k.jpg);
     background-size: 100vw;
     resize: both;
     background-repeat: no-repeat;
@@ -79,11 +79,33 @@ footer ul li {
     padding:5px 15px;
 }
 
+@media (max-width: 2048px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-uhd.jpg);
+    }
+}
 
+@media (max-width: 1920px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-fhd.jpg);
+    }
+}
+
+@media (max-width: 1280px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-hd.jpg);
+    }
+}
 
 @media (max-width: 1199px) {
     .hide-lg {
         display:none;
+    }
+}
+
+@media (max-width: 1024px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-laptop.jpg);
     }
 }
 
@@ -103,6 +125,10 @@ footer ul li {
 }
 
 @media (max-width: 767px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-tablet.jpg);
+    }
+
     .hide-sm {
         display:none;
     }
@@ -121,5 +147,17 @@ footer ul li {
 @media (max-width: 575px) {
     .hide-xs {
         display:none;
+    }
+}
+
+@media (max-width: 425px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-mobile-large.jpg);
+    }
+}
+
+@media (max-width: 375px) {
+    .homepage.blog-header {
+        background-image: url(assets/img/blog-header-mobile.jpg);
     }
 }
