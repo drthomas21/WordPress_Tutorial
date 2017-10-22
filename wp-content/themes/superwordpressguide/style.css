@@ -1,0 +1,125 @@
+/**
+* Theme Name: Bootstrap 3
+* Author Name: Nii Sama
+* Author URI: https://superwordpressguide.com/about/
+* Version: 0.1a
+**/
+
+body {
+    color: #555;
+}
+
+.homepage.blog-header {
+    background: url(assets/img/blog-header.jpg);
+    background-size: 100vw;
+    resize: both;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    padding-top:50vh;
+}
+
+.homepage .page-container,
+.fourohfour .page-container,
+.archive .page-container,
+.category .page-container,
+.search .page-container,
+.tag .page-container {
+    margin-top: 20px;
+}
+
+.homepage .post-date,
+.fourohfour .post-date,
+.archive .post-date,
+.category .post-date,
+.search .post-date,
+.tag .post-date {
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.page-container {
+    background-color: #fff;
+}
+
+.post {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 30px;
+}
+
+.post:last-child {
+    margin-bottom: 30px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+a, .navbar-light .navbar-brand {
+    color: #730ab3;
+}
+
+.center-image {
+    display: block;
+    margin: auto;
+}
+
+.youtube-vids > div {
+    margin-bottom: 20px;
+}
+
+footer {
+    width: 100%;
+    clear: both;
+    border-top:1px solid #ccc;
+    background-color: #f8f9fa
+}
+
+footer ul li {
+    list-style: none;
+    display:inline-block;
+    padding:5px 15px;
+}
+
+
+
+@media (max-width: 1199px) {
+    .hide-lg {
+        display:none;
+    }
+}
+
+@media (max-width: 991px) {
+    .hide-md {
+        display:none;
+    }
+
+    .homepage .post-date,
+    .fourohfour .post-date,
+    .archive .post-date,
+    .category .post-date,
+    .search .post-date,
+    .tag .post-date {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 767px) {
+    .hide-sm {
+        display:none;
+    }
+
+    .homepage .post-date,
+    .fourohfour .post-date,
+    .archive .post-date,
+    .category .post-date,
+    .search .post-date,
+    .tag .post-date {
+        font-size: 16px;
+    }
+}
+
+
+@media (max-width: 575px) {
+    .hide-xs {
+        display:none;
+    }
+}
