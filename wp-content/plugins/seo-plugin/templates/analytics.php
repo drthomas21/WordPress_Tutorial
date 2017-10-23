@@ -1,3 +1,4 @@
+<?php if(stripos($_SERVER['USER_AGENT'],"Google Page Speed Insights") !== false): ?>
 <!-- Global Site Tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-29594513-13"></script>
 <script>
@@ -9,3 +10,4 @@
 </script>
 <!-- Facebook App ID -->
 <meta property="fb:app_id" content="1996617927234073">
+<?php endif; ?>

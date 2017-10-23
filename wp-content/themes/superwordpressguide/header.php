@@ -6,7 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
         <?php wp_head(); ?>
+        <?php if(stripos($_SERVER['USER_AGENT'],"Google Page Speed Insights") !== false): ?>
         <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <?php endif; ?>
 
     </head>
     <body ng-app="app">
