@@ -1,8 +1,8 @@
 (function($){
     if($(window).height() > $("body").height()) {
-        $("footer").style({
+        $("footer").css({
             "position":"absolute",
             "bottom":0
         });
     }
-});
+})(jQuery);
