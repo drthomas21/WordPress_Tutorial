@@ -4,7 +4,7 @@
         <ins class="adsbygoogle"
              style="display:inline-block;width:300px;height:600px"
              data-ad-client="ca-pub-6823528022937171"
-             data-ad-slot="7968861962"></ins>
+             data-ad-slot="5361989274"></ins>
         <script>
         (adsbygoogle = window.adsbygoogle || []).push({});
         </script>
