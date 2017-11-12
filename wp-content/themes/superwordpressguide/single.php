@@ -1,7 +1,7 @@
 <?php get_header(); ?>
 <section class="single blog-header">
     <div class="page-container">
-        <div class="col-sm-12 posts">
+        <div class="col-lg-12 col-xl-8 posts">
             <?php if(have_posts()): while(have_posts()): the_post(); ?>
                 <?php get_template_part("partials/content","single"); ?>
             <?php endwhile; else: ?>

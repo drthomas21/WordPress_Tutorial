@@ -2,7 +2,7 @@
 * Theme Name: Responsive WordPress Guide
 * Author Name: Nii Sama
 * Author URI: https://superwordpressguide.com/about/
-* Version: 0.2a
+* Version: 1.0
 **/
 
 body {
@@ -64,6 +64,10 @@ a, .navbar-light .navbar-brand {
 
 .youtube-vids > div {
     margin-bottom: 20px;
+}
+
+.page-container > div {
+    margin: auto;
 }
 
 footer {

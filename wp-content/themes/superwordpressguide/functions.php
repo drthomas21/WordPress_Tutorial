@@ -16,7 +16,7 @@ function get_the_leading_asset(string $postContent = ""): string {
     } elseif(get_media_embedded_in_content($postContent,["video","object","embed","iframe"])) {
         $list = get_media_embedded_in_content($postContent,["video","object","embed","iframe"]);
         if(!empty($list)) {
-            $content = '<div class="embed-responsive embed-responsive-16by9">'.$list[0].'</div>';
+            $content = '<div class="embed-responsive embed-responsive-21by9">'.$list[0].'</div>';
         }
     }
 
@@ -49,9 +49,11 @@ function the_category_link() {
 function get_the_tag_link(): string {
     $list = [];
     $Categories = get_the_tags();
-    foreach($Categories as $Category) {
-        $list[] = "<a href='".get_tag_link($Category)."'>#".strtolower($Category->name)."</a>";
-    }
+    if(is_array($Categories)) {
+        foreach($Categories as $Category) {
+            $list[] = "<a href='".get_tag_link($Category)."'>#".strtolower($Category->name)."</a>";
+        }
+    }    
 
     return implode(", ",$list);
 }
@@ -86,7 +88,7 @@ add_action("wp_enqueue_scripts",function() {
 add_filter("embed_oembed_html",function(string $html): string {
     $html = preg_replace("/(width|height)\s*=\s*[\'\"][0-9]+[\'\"]/","",$html);
     $html = preg_replace("/<([a-z]+)/","<\$1 class='embed-responsive-item'",$html);
-    return '<div class="embed-responsive embed-responsive-16by9">'.$html.'</div>';
+    return '<div class="embed-responsive embed-responsive-21by9">'.$html.'</div>';
 },10);
 
 add_filter("the_content",function(string $content){

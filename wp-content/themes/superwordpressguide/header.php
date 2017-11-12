@@ -5,11 +5,9 @@
         <meta charset="<?php bloginfo('charset'); ?>">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+        <!-- WP_HEAD -->
         <?php wp_head(); ?>
-        <?php if(stripos($_SERVER['HTTP_USER_AGENT'],"Google Page Speed Insights") === false): ?>
-        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-        <?php endif; ?>
-
+        <!-- END WP_HEAD -->
     </head>
     <body ng-app="app">
           <?php get_template_part("partials/navbar"); ?>
