@@ -1,4 +1,4 @@
-<?php if(stripos($_SERVER['USER_AGENT'],"Google Page Speed Insights") === false): ?>
+<?php if(stripos($_SERVER['HTTP_USER_AGENT'],"Google Page Speed Insights") === false): ?>
 <!-- Global Site Tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-29594513-13"></script>
 <script>

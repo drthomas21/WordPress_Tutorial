@@ -18,14 +18,14 @@ class MemcachedDriver {
             $this->list = MEMCACHED_CONFIG;
         }
 
-        if(!empty($this->config)) {
+        if(!empty($this->list)) {
             $this->conn = new \Memcached(__CLASSNAME__);
             $this->conn->addServers($this->list);
         }
     }
 
     public function __call(string $name, array $arguments = array()) {
-        if($this->conn && in_arary($name,[
+        if($this->conn && in_array($name,[
             'add','cas','decrement','delete','fetch','fetchAll','get','flush','getStats','increment','prepend','replace','set','touch'
         ]) && method_exists($this->conn,$name)) {
             return call_user_func_array (array($this->conn,$name),$arguments);
