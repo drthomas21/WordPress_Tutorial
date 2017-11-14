@@ -8,6 +8,19 @@
         <!-- WP_HEAD -->
         <?php wp_head(); ?>
         <!-- END WP_HEAD -->
+
+        <?php if(is_user_logged_in()): ?>
+        <style>
+            nav.navbar {
+                top: 32px;
+            }
+            @media all and (max-width: 600px) {
+                nav.navbar {
+                    top: 0px;
+                }
+            }
+        </style>
+        <?php endif; ?>
     </head>
     <body ng-app="app">
           <?php get_template_part("partials/navbar"); ?>
