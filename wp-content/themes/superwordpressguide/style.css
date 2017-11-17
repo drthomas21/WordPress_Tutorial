@@ -9,6 +9,15 @@ body {
     color: #555;
 }
 
+body > div.container-fluid {
+    margin-top: 50px;
+}
+
+section.single section.post p img {
+    width: 100%;
+    height: auto;
+}
+
 .homepage.blog-header {
     background: url(assets/img/blog-header-4k.jpg);
     background-size: 100vw;
