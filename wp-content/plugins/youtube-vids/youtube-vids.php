@@ -1,18 +1,28 @@
 <?php
 /**
 * Plugin Name: Youtube Profile Vids
-* Plugin Author: dathomas
+* Description: A custom plugin used to fetch account data about the registered account. Please make sure to set your API key like below
+define("OAUTH_KEYS",[
+	"google" => [
+		"id" => "<id>",
+		"secret" => "<secret>"
+	]
+]);
+* Author: dathomas
 * Version: 0.1a
 **/
 
 /**
 * NOTE: make sure to add the following to your wp-config.php file
-define('API_KEY',[
-    "google-dev" => "<key>",
-    "google-prod" => "<key>"
+define("OAUTH_KEYS",[
+	"google" => [
+		"id" => "<id>",
+		"secret" => "<secret>"
+	]
 ]);
 **/
 
+define("YOUTUBE_VIDS_DIR",__DIR__);
 //register autoload
 spl_autoload_register(function ($class_name) {
     //Ignore class_name that does not match
@@ -35,7 +45,60 @@ spl_autoload_register(function ($class_name) {
 
 //Load Youtube Library
 require_once __DIR__.'/vendor/autoload.php';
+\Youtube_Vids\Controllers\AdminController::getInstance();
 
-if(!is_admin()) {
-    
+function list_popular_videos(int $offset = 0, int $limit = 10): array {
+    $maxNum = $offset + $limit;
+    $list = wp_cache_get("popularVideos","Youtube");
+    if(!$list || empty($list) || count($list) < $maxNum) {
+        $Controller = new \Youtube_Vids\Controllers\PageController();
+        $list = $Controller->getPopularVideos($offset,$limit);
+
+        wp_cache_set("popularVideos",$list,"Youtube",3600);
+    }
+    return array_slice($list,$offset,$limit);
+}
+
+function list_recent_videos(int $offset = 0, int $limit = 10): array {
+    $maxNum = $offset + $limit;
+    $list = wp_cache_get("recentVideos","Youtube");
+    if(!$list || empty($list) || count($list) < $maxNum) {
+        $Controller = new \Youtube_Vids\Controllers\PageController();
+        $list = $Controller->getRecentVideos($offset,$limit);
+
+        wp_cache_set("recentVideos",$list,"Youtube",3600);
+    }
+    return array_slice($list,$offset,$limit);
+}
+
+function get_popular_videos(int $offset = 0, int $limit = 10): string {
+    $videos = list_popular_videos($offset,$limit);
+    $items = [];
+    if(!empty($videos)) {
+        foreach ($videos as $Video) {
+            $items[] = "<li><iframe src='https://www.youtube.com/embed/{$Video->id}'></iframe></li>";
+        }
+    }
+
+    return "<ul>".implode("",$items)."</ul>";
+}
+
+function get_recent_videos(int $offset = 0, int $limit = 10): string {
+    $videos = list_recent_videos($offset,$limit);
+    $items = [];
+    if(!empty($videos)) {
+        foreach ($videos as $Video) {
+            $items[] = "<li><iframe src='https://www.youtube.com/embed/{$Video->id}'></iframe></li>";
+        }
+    }
+
+    return "<ul>".implode("",$items)."</ul>";
+}
+
+function the_popular_videos(int $offset = 0, int $limit = 10) {
+    echo get_popular_videos($offset,$limit);
+}
+
+function the_newest_videos(int $offset = 0, int $limit = 10) {
+    echo get_newest_videos($offset,$limit);
 }

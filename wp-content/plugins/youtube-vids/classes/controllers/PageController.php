@@ -6,13 +6,13 @@ class PageController {
         $this->Service = new \Youtube_Vids\Services\YoutubeService();
     }
 
-    public function listPopularVideos(int $offset = 0, int $limit = 10): string {
+    public function getPopularVideos(int $offset = 0, int $limit = 10): array {
         $vidoes = $this->Service->getPopularVideos($offset,$limit);
-        $html = "";
-        if(!empty($videos)) {
-            foreach ($videos as $Video) {
-                
-            }
-        }
+        return $vidoes;
+    }
+
+    public function getRecentVideos(int $offset = 0, int $limit = 10): array {
+        $vidoes = $this->Service->getNewestVideos($offset,$limit);
+        return $vidoes;
     }
 }

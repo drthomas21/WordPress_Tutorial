@@ -2,17 +2,20 @@
 namespace Youtube_Vids\Models;
 class AccountModel {
     public static function getAccountRecord(): \Youtube_Vids\Records\AccountRecord {
-        $key = "";
-        if(defined("API_KEYS")) {
-            $isDev = defined("IS_DEV") && IS_DEV ? IS_DEV : false;
-            if($isDev) {
-                $key = API_KEYS["google-dev"];
+        $id = "";
+        $secret = "";
+        if(defined("OAUTH_KEYS")) {
+            if(array_key_exists('google',OAUTH_KEYS)) {
+                $id = OAUTH_KEYS['google']['id'];
+                $secret = OAUTH_KEYS['google']['secret'];
             } else {
-                $key = API_KEYS["google-prod"];
+                error_log("please add your 'google' OAUTH key into your list of 'OAUTH_KEYS'");
             }
+        } else {
+            error_log("'OAUTH_KEYS' is not set");
         }
 
-        $Record = new \Youtube_Vids\Records\AccountRecord($key);
+        $Record = new \Youtube_Vids\Records\AccountRecord($id,$secret);
         return $Record;
     }
 }
