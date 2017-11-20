@@ -53,7 +53,7 @@ function get_the_tag_link(): string {
         foreach($Categories as $Category) {
             $list[] = "<a href='".get_tag_link($Category)."'>#".strtolower($Category->name)."</a>";
         }
-    }    
+    }
 
     return implode(", ",$list);
 }
@@ -79,6 +79,9 @@ add_action("wp_enqueue_scripts",function() {
     wp_enqueue_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",true);
     wp_enqueue_script("bootstrap",get_asset_url("js/bootstrap.min.js"),array("jquery","popper"),"4.0.0",true);
     wp_enqueue_script("main",get_asset_url("js/main.js"),array("jquery","bootstrap"),THEME_VERSION,true);
+    if(is_home()) {
+        wp_enqueue_script("home",get_asset_url("js/home.js"),array("jquery","bootstrap"),THEME_VERSION,true);
+    }
 
     //WP Enqueue Styles
     wp_enqueue_style("boostrap",get_asset_url("css/bootstrap.min.css"),array(),"4.0.0","all");

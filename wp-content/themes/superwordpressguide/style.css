@@ -2,8 +2,9 @@
 * Theme Name: Responsive WordPress Guide
 * Author Name: Nii Sama
 * Author URI: https://superwordpressguide.com/about/
-* Version: 1.1
+* Version: 1.2
 **/
+@import url('https://fonts.googleapis.com/css?family=Permanent+Marker');
 
 body {
     color: #555;
@@ -16,6 +17,17 @@ body > div.container-fluid {
 section.single section.post p img {
     width: 100%;
     height: auto;
+}
+
+h2.section-label {
+    font-family: 'Permanent Marker', cursive;
+    color: #800080;
+    font-size: 60px;
+}
+
+.main-content > div {
+    display: inline-block;
+    vertical-align: top;
 }
 
 .homepage.blog-header {
