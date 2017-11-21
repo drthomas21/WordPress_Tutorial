@@ -54,7 +54,7 @@ function list_popular_videos(int $offset = 0, int $limit = 10): array {
         $Controller = new \Youtube_Vids\Controllers\PageController();
         $list = $Controller->getPopularVideos($offset,$limit);
 
-        wp_cache_set("popularVideos",$list,"Youtube",3600);
+        wp_cache_set("popularVideos",$list,"Youtube",604800);
     }
     return array_slice($list,$offset,$limit);
 }
@@ -66,7 +66,7 @@ function list_recent_videos(int $offset = 0, int $limit = 10): array {
         $Controller = new \Youtube_Vids\Controllers\PageController();
         $list = $Controller->getRecentVideos($offset,$limit);
 
-        wp_cache_set("recentVideos",$list,"Youtube",3600);
+        wp_cache_set("recentVideos",$list,"Youtube",604800);
     }
     return array_slice($list,$offset,$limit);
 }

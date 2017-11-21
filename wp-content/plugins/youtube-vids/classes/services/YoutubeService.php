@@ -23,36 +23,51 @@ class YoutubeService {
             error_log($e->getMessage());
         }
 
+        if(!is_a($resp,"Google_Service_YouTube_SearchListResponse")) {
+            throw new \Exception("Invalid object");
+        }
+
         return $resp;
     }
 
     public function getPopularVideos(int $offset = 0, int $limit = 10): array {
         $list = array();
-        $Resp = $this->search([
-            'forMine' => true,
-            'order' => 'viewCount',
-        ],$offset,$limit);
 
-        if(!empty($Resp->items)) {
-            foreach($Resp->items as $Item) {
-                $list[] = new \Youtube_Vids\Records\VideoRecord((object)(array)$Item->id,(object)(array)$Item->snippet);
+        try {
+            $Resp = $this->search([
+                'forMine' => true,
+                'order' => 'viewCount',
+            ],$offset,$limit);
+
+            if(!empty($Resp->items)) {
+                foreach($Resp->items as $Item) {
+                    $list[] = new \Youtube_Vids\Records\VideoRecord((object)(array)$Item->id,(object)(array)$Item->snippet);
+                }
             }
+        } catch(\Exception $e) {
+            //Do nothing;
         }
+
 
         return $list;
     }
 
     public function getNewestVideos(int $offset = 0, int $limit = 10): array {
         $list = array();
-        $Resp = $this->search([
-            'forMine' => true,
-            'order' => 'date',
-        ],$offset,$limit);
 
-        if(!empty($Resp->items)) {
-            foreach($Resp->items as $Item) {
-                $list[] = new \Youtube_Vids\Records\VideoRecord((object)(array)$Item->id,(object)(array)$Item->snippet);
+        try {
+            $Resp = $this->search([
+                'forMine' => true,
+                'order' => 'date',
+            ],$offset,$limit);
+
+            if(!empty($Resp->items)) {
+                foreach($Resp->items as $Item) {
+                    $list[] = new \Youtube_Vids\Records\VideoRecord((object)(array)$Item->id,(object)(array)$Item->snippet);
+                }
             }
+        } catch(\Exception $e) {
+            //Do nothing;
         }
 
         return $list;
