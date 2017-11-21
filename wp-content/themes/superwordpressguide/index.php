@@ -2,16 +2,18 @@
 <section class="homepage blog-header">
     <div class="col-md-12 col-lg-8 float-left main-content">
         <div class="col-xl-6 main-content-1">
-            <div class="youtube-vids">
-                <h2 class='text-center section-label'>Newest Video</h2>
-                <?php foreach(list_recent_videos(0,2) as $Video): ?>
-                    <div class="embed-responsive embed-responsive-16by9">
-                        <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/<?= $Video->id; ?>?rel=0" allowfullscreen></iframe>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <div class='clearfix'></div>
-            <hr />
+            <?php if(!empty(list_recent_videos(0,2))): ?>
+                <div class="youtube-vids">
+                    <h2 class='text-center section-label'>Newest Video</h2>
+                    <?php foreach(list_recent_videos(0,2) as $Video): ?>
+                        <div class="embed-responsive embed-responsive-16by9">
+                            <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/<?= $Video->id; ?>?rel=0" allowfullscreen></iframe>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class='clearfix'></div>
+                <hr />
+            <?php endif; ?>
             <div class="posts">
                 <h2 class='text-center section-label'>OP;ED</h2>
                 <?php
@@ -35,14 +37,16 @@
     </div>
 
     <div class="col-md-12 col-lg-4 float-right">
-        <div class="youtube-vids">
-            <h2 class='text-center section-label'>Going Viral?</h2>
-            <?php foreach(list_popular_videos(0,5) as $Video): ?>
-                <div class="embed-responsive embed-responsive-16by9">
-                    <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/<?= $Video->id; ?>?rel=0" allowfullscreen></iframe>
-                </div>
-            <?php endforeach; ?>
-        </div>
+        <?php if(!empty(list_popular_videos(0,2))): ?>
+            <div class="youtube-vids">
+                <h2 class='text-center section-label'>Going Viral?</h2>
+                <?php foreach(list_popular_videos(0,5) as $Video): ?>
+                    <div class="embed-responsive embed-responsive-16by9">
+                        <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/<?= $Video->id; ?>?rel=0" allowfullscreen></iframe>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 
