@@ -48,26 +48,32 @@ require_once __DIR__.'/vendor/autoload.php';
 \Youtube_Vids\Controllers\AdminController::getInstance();
 
 function list_popular_videos(int $offset = 0, int $limit = 10): array {
-    $maxNum = $offset + $limit;
-    $list = wp_cache_get("popularVideos","Youtube");
-    if(!$list || empty($list) || count($list) < $maxNum) {
-        $Controller = new \Youtube_Vids\Controllers\PageController();
-        $list = $Controller->getPopularVideos($offset,$limit);
+    $Controller = new \Youtube_Vids\Controllers\PageController();
+    $list = $Controller->getPopularVideos($offset,$limit);
 
-        wp_cache_set("popularVideos",$list,"Youtube",604800);
+    if(!empty($list)) {
+        update_option(__FUNCTION__,$list,false);
     }
+
+    if(empty($list)) {
+        $list = get_option(__FUNCTION__,array());
+    }
+
     return array_slice($list,$offset,$limit);
 }
 
 function list_recent_videos(int $offset = 0, int $limit = 10): array {
-    $maxNum = $offset + $limit;
-    $list = wp_cache_get("recentVideos","Youtube");
-    if(!$list || empty($list) || count($list) < $maxNum) {
-        $Controller = new \Youtube_Vids\Controllers\PageController();
-        $list = $Controller->getRecentVideos($offset,$limit);
+    $Controller = new \Youtube_Vids\Controllers\PageController();
+    $list = $Controller->getRecentVideos($offset,$limit);
 
-        wp_cache_set("recentVideos",$list,"Youtube",604800);
+    if(!empty($list)) {
+        update_option(__FUNCTION__,$list,false);
     }
+
+    if(empty($list)) {
+        $list = get_option(__FUNCTION__,array());
+    }
+
     return array_slice($list,$offset,$limit);
 }
 
