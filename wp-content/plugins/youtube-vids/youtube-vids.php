@@ -9,7 +9,7 @@ define("OAUTH_KEYS",[
 	]
 ]);
 * Author: dathomas
-* Version: 0.1a
+* Version: 0.3
 **/
 
 /**
