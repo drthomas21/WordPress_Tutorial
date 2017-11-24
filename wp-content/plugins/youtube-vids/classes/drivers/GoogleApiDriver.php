@@ -34,15 +34,18 @@ class GoogleApiDriver {
         return !is_array($token) ? [] : $token;
     }
 
-    public function setAccessToken(): bool {
+    public function refreshAccessToken(): bool {
         $this->GoogleClient->setAccessToken($this->getAccessToken());
         if($this->checkAccessToken()) {
             return true;
         } else {
-            $token = $this->GoogleClient->fetchAccessTokenWithRefreshToken();
-            if(is_array($token)) {
-                update_option(self::OPTION_ACCESS_TOKEN,$token);
-                return true;
+            $oldToken = $this->getAccessToken();
+            if(is_array($oldToken) && array_key_exists('refresh_token',$oldToken)) {
+                $token = $this->GoogleClient->fetchAccessTokenWithRefreshToken();
+                if(is_array($token)) {
+                    update_option(self::OPTION_ACCESS_TOKEN,$token);
+                    return true;
+                }
             }
         }
         return false;

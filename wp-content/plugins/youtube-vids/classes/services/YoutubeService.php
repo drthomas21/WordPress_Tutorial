@@ -8,7 +8,9 @@ class YoutubeService {
     public function __construct() {
         $this->GoogleDriver = new \Youtube_Vids\Drivers\GoogleApiDriver();
         $this->GoogleDriver->prepareScopes();
-        $this->GoogleDriver->checkAccessToken();
+        if(!$this->GoogleDriver->checkAccessToken() && $this->GoogleDriver->refreshToken()) {
+            error_log("Could not refresh token");
+        }
 
         $this->Service = new \Google_Service_YouTube($this->GoogleDriver->getClient());
     }

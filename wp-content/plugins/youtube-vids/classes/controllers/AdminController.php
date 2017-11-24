@@ -55,7 +55,7 @@ class AdminController {
 
     protected function display() {
         $Driver = $this->getDriver();
-        $Driver->setAccessToken();
+        $Driver->refreshAccessToken();
         $token = $Driver->getAccessToken();
 
         $accessToken = isset($token['access_token']) ? $token['access_token'] : "";
