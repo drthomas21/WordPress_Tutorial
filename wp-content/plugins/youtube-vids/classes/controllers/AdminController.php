@@ -57,8 +57,9 @@ class AdminController {
         $Driver = $this->getDriver();
         $Driver->setAccessToken();
         $token = $Driver->getAccessToken();
-        
+
         $accessToken = isset($token['access_token']) ? $token['access_token'] : "";
+        $refreshToken = isset($token['refresh_token']) ? $token['refresh_token'] : "";
         $createDate = isset($token['created']) ? date("Y-m-d H:i:s",$token['created'] - (8 * 3600)) : "";
         $expireDate = isset($token['created']) && $token['expires_in'] ? date("Y-m-d H:i:s",$token['created'] + $token['expires_in'] - (8 * 3600)) : "";
 

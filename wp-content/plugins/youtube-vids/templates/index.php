@@ -1,5 +1,6 @@
 <div class='wrapper'>
     <h2><?= self::PAGE_TITLE; ?></h2>
+    <p>Link your YouTube account with this App to display your vidoes onto your website.</p>
     <br />
     <p>Is Access Token Valid?
         <?php if($Driver->checkAccessToken()): ?>
@@ -10,7 +11,8 @@
     </p>
     <h2>Token Info:</h2>
     <ul>
-        <li><strong>Access Token: </strong><?= $accessToken; ?></li>
+        <li><strong>Has Access Token: </strong><?= (strlen($accessToken) > 0 ? "Yes" : "No"); ?></li>
+        <li><strong>Has Refresh Token: </strong><?= (strlen($refreshToken) > 0 ? "Yes" : "No"); ?></li>
         <li><strong>Created: </strong><?= $createDate ?></li>
         <li><strong>Expires On: </strong><?= $expireDate ?></li>
     </ul>
