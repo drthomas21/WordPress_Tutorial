@@ -31,6 +31,7 @@ class GoogleApiDriver {
 
     public function getAccessToken(): array {
         $token = get_option(self::OPTION_ACCESS_TOKEN,[]);
+        //var_dump($token);
         return !is_array($token) ? [] : $token;
     }
 
@@ -40,8 +41,11 @@ class GoogleApiDriver {
             return true;
         } else {
             $token = $this->GoogleClient->getAccessToken();
-            update_option(self::OPTION_ACCESS_TOKEN,$token);
-            return true;
+            //var_dump($token);
+            if(is_array($token)) {
+                update_option(self::OPTION_ACCESS_TOKEN,$token);
+                return true;
+            }
         }
         return false;
     }
