@@ -9,6 +9,9 @@
         <?php wp_head(); ?>
         <!-- END WP_HEAD -->
 
+        <?php if(stripos($_SERVER['HTTP_USER_AGENT'],"Google Page Speed Insights") === false && is_single() && !is_attachment()): ?>
+            <script type="text/javascript" src="//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons"></script>
+        <?php endif; ?>
         <?php if(is_user_logged_in()): ?>
         <style>
             nav.navbar {
