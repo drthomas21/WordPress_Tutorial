@@ -91,6 +91,10 @@ a, .navbar-light .navbar-brand {
     margin: auto;
 }
 
+.sharethis-inline-share-buttons {
+    margin-bottom:20px;
+}
+
 footer {
     width: 100%;
     clear: both;
