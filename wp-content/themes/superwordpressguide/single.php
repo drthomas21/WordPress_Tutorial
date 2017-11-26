@@ -10,7 +10,6 @@
         </div>
         <div class="col-sm-4 col-xl-4 float-right text-center">
             <div class="goole-ad">
-                <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
                 <!-- article_page -->
                 <ins class="adsbygoogle"
                      style="display:inline-block;width:300px;height:600px"
