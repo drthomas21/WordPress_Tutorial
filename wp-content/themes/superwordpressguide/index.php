@@ -48,7 +48,6 @@
             </div>
         <?php endif; ?>
         <div class="goole-ad">
-            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
             <!-- homepage -->
             <ins class="adsbygoogle"
                  style="display:inline-block;width:300px;height:600px"

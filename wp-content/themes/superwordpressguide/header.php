@@ -9,9 +9,18 @@
         <?php wp_head(); ?>
         <!-- END WP_HEAD -->
 
-        <?php if(stripos($_SERVER['HTTP_USER_AGENT'],"Google Page Speed Insights") === false && is_single() && !is_attachment()): ?>
+        <?php if(is_single() && !is_attachment()): ?>
             <script type="text/javascript" src="//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons"></script>
         <?php endif; ?>
+
+        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <script>
+          (adsbygoogle = window.adsbygoogle || []).push({
+            google_ad_client: "ca-pub-6823528022937171",
+            enable_page_level_ads: true
+          });
+        </script>
+        
         <?php if(is_user_logged_in()): ?>
         <style>
             nav.navbar {
