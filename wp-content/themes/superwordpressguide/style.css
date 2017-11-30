@@ -2,7 +2,7 @@
 * Theme Name: Responsive WordPress Guide
 * Author Name: Nii Sama
 * Author URI: https://superwordpressguide.com/about/
-* Version: 1.2
+* Version: 2.0
 **/
 @import url('https://fonts.googleapis.com/css?family=Permanent+Marker');
 
@@ -12,6 +12,10 @@ body {
 
 body > div.container-fluid {
     margin-top: 50px;
+}
+
+.inline-block {
+    display: inline-block;
 }
 
 section.single section.post p img {
@@ -37,6 +41,25 @@ h2.section-label {
     background-repeat: no-repeat;
     background-attachment: fixed;
     padding-top:50vh;
+}
+
+.homepage .main-content {
+    background-color: #fff;
+}
+
+.homepage .main-content > div, .homepage .main-content > div.float-left > div, .homepage .main-content > div.float-right > div, .homepage .posts > div {
+    display:inline-block;
+    vertical-align: top;
+}
+
+.homepage .more-posts > div.float-left {
+    background-color: #f8f9fa;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    max-width: calc(33.333333% - 40px);
+    margin-left: 20px;
+    margin-right: 20px;
+    padding-top: 20px;
 }
 
 .homepage .page-container,
