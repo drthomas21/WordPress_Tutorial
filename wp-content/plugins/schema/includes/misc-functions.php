@@ -28,7 +28,7 @@ function schema_wp_get_ref( $post_id = null ) {
 	
 	$schema_ref = get_post_meta( $post_id, '_schema_ref', true );
 	
-	If ( ! isset($schema_ref) ) $schema_ref = fasle;
+	If ( ! isset($schema_ref) ) $schema_ref = false;
 	
 	return apply_filters( 'schema_wp_ref', $schema_ref );
 }
@@ -78,7 +78,7 @@ function schema_wp_get_jsonld( $post_id = null ) {
 	
 	$schema_json = get_post_meta( $post_id, '_schema_json', true);
 	
-	If ( ! isset($schema_json )) $schema_json = fasle;
+	If ( ! isset($schema_json )) $schema_json = false;
 	
 	return apply_filters( 'schema_wp_json', $schema_json );
 }
@@ -198,6 +198,8 @@ function schema_wp_cpt_get_enabled_post_types() {
 		
 	endforeach;
 	
+	wp_reset_postdata();
+	
 	// debug
 	//echo '<pre>'; print_r($cpt_enabled); echo '</pre>'; exit;
 	//echo reset($cpt_enabled[0]);
@@ -224,10 +226,11 @@ function schema_wp_get_ref_by_post_type( $post_type = null ) {
     	SELECT * 
     	FROM  $wpdb->posts
         WHERE post_type = 'schema'
+			AND post_status = 'publish'
 	" );
 	
 	//echo '<pre>'; print_r($schema_posts); echo '</pre>';exit;
-	if ( empty($schema_posts) ) return false;
+	if ( empty($schema_posts) ) return array();
 	 
 	foreach ( $schema_posts as $key => $post ) {
 		$supported_types = get_post_meta( $post->ID, '_schema_post_types', true );
@@ -740,4 +743,28 @@ function schema_wp_get_currency_symbol( $currency ) {
 	}
 
 	return apply_filters( 'schema_wp_currency_symbol', $currency_symbol, $currency );
+}
+
+/**
+ * Get archive link
+ *
+ * @param string $post_type for custom post type
+ * @since 1.6.9.8
+ * @return string
+ */
+function schema_wp_get_archive_link( $post_type ) {
+	global $wp_post_types;
+	$archive_link = false;
+	if (isset($wp_post_types[$post_type])) {
+		$wp_post_type = $wp_post_types[$post_type];
+	if ($wp_post_type->publicly_queryable)
+		if ($wp_post_type->has_archive && $wp_post_type->has_archive!==true)
+			$slug = $wp_post_type->has_archive;
+		else if (isset($wp_post_type->rewrite['slug']))
+			$slug = $wp_post_type->rewrite['slug'];
+		else
+			$slug = $post_type;
+		$archive_link = get_option( 'siteurl' ) . "/{$slug}/";
+	}
+	return apply_filters( 'schema_wp_archive_link', $archive_link, $post_type );
 }

@@ -1,26 +1,30 @@
 <?php
 /**
- * Blog
+ * Post Type Archives
  *
- * @since 1.5.4
+ * @since 1.6.9.8
  */
  
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-add_action('wp_head', 'schema_wp_output_blog');
+add_action('wp_head', 'schema_wp_output_post_type_archive');
 /**
  * The main function responsible for output schema json-ld 
  *
- * @since 1.5.4
+ * @since 1.6.9.8
  * @return schema json-ld final output
  */
-function schema_wp_output_blog() {
-		
+function schema_wp_output_post_type_archive() {
+	
+	global $post;
+	
+	$post_type = get_post_type();
+	
 	// Run only on blog list page
-	if ( ! is_front_page() && is_home() || is_home() ) {
+	if ( is_post_type_archive() ) { 
 		
-		$json = schema_wp_get_blog_json( 'Blog' );
+		$json = schema_wp_get_post_type_archive_json( $post_type );
 		
 		$output = '';
 		
@@ -44,10 +48,10 @@ function schema_wp_output_blog() {
  * The main function responsible for putting shema array all together
  *
  * @param string $type for schema type (example: Person)
- * @since 1.6.9.5
+ * @since 1.6.9.8
  * @return schema output
  */
-function schema_wp_get_blog_json( $type ) {
+function schema_wp_get_post_type_archive_json( $post_type ) {
 	
 	global $post, $wp_query, $query_string;
 	
@@ -57,8 +61,11 @@ function schema_wp_get_blog_json( $type ) {
 	
 	if ( empty($wp_query->query_vars) ) return;
 	
+	
+	
 	$blogPost 	= array();
 	$schema 	= array();
+	$url		= schema_wp_get_archive_link( $post_type ) ? schema_wp_get_archive_link($post_type) : get_home_url();
 	
 	$secondary_loop = new WP_Query( $wp_query->query_vars );
 	
@@ -66,6 +73,9 @@ function schema_wp_get_blog_json( $type ) {
 	   
 	   // get markup data for each post in the query
 	   if ( ! empty($secondary_loop->posts) ) {
+		   
+			$i = 1;
+			
 			foreach ($secondary_loop->posts as $schema_post) {
 				
 				// pull json from post meta
@@ -73,43 +83,38 @@ function schema_wp_get_blog_json( $type ) {
 				
 				if ( isset($schema_json) && is_array($schema_json) ) {
 					
-					$blogPost[] = $schema_json;
-				
-				} else { 
-				
-					// create it
-					$blogPost[] = apply_filters( 'schema_output_blog_post', array
-           			(
-						'@type' => 'BlogPosting',
-						'headline' => get_the_title(),
-						//'description' => strip_shortcodes( get_the_excerpt($post->ID) ),
-						'url' => get_the_permalink(),
-						'sameAs' => schema_wp_get_sameAs($schema_post->ID),
-						'datePublished' => get_the_date('c'),
-						'dateModified' => get_the_modified_date('c'),
-						'mainEntityOfPage' => get_the_permalink(),
-						'author' => schema_wp_get_author_array(),
-						'publisher' => schema_wp_get_publisher_array(),
-						'image' => schema_wp_get_media($schema_post->ID),
-						'keywords' => schema_wp_get_post_tags($schema_post->ID),
-						'commentCount' => get_comments_number(),
-						'comment' => schema_wp_get_comments(),
-            		));
+					// override urls, fix for: All values provided for url must point to the same page.
+					$schema_json['url'] = $url.'#'.$schema_post->post_name;
+					
+					$blogPost[] = array(
+						'@type'		=> 'ListItem',
+						//'url'		=> '', // ListItem with url and ListItem with item are incompatible.
+      					'position'	=> $i,
+      					'item' 		=> $schema_json
+					);
 				}
-			}
+				
+				$i++;
+			}// end foreach
 		}
 		
 		wp_reset_postdata();
 		
+		// get post type details	
+		$post_type_archive_title = post_type_archive_title( __(''), false );
+		$obj = get_post_type_object( $post_type );
+		
 		// put all together
 		$schema = array
         (
-			'@context' => 'http://schema.org/',
-			'@type' => "Blog",
-			'headline' => get_option( 'page_for_posts' ) ? get_the_title( get_option( 'page_for_posts' ) ) : get_bloginfo( 'name' ),
-			'description' => get_bloginfo( 'description' ),
-			'url' => get_option( 'page_for_posts' ) ? get_permalink( get_option( 'page_for_posts' ) ) : get_home_url(),
-			'blogPost' => $blogPost,
+			'@context' 			=> 'http://schema.org/',
+			'@type' 			=> array('ItemList', 'CreativeWork'),
+			'name' 				=> ($post_type_archive_title) ? $post_type_archive_title : get_bloginfo( 'name' ),
+			'description' 		=> isset($obj->description) ? $obj->description : '',
+			'url' 				=> $url,
+			'itemListOrder' 	=> 'http://schema.org/ItemListOrderAscending',
+			'numberOfItems' 	=> count($blogPost),
+			'itemListElement' 	=> $blogPost,
         );
 				
 	endif;
@@ -117,5 +122,5 @@ function schema_wp_get_blog_json( $type ) {
 	// debug
 	//echo'<pre>';print_r($schema);echo'</pre>';exit;
 	
-	return apply_filters( 'schema_blog_output', $schema );
+	return apply_filters( 'schema_post_type_archive_output', $schema );
 }

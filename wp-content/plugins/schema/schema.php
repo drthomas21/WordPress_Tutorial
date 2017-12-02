@@ -5,7 +5,7 @@
  * Description: The next generation of Structured Data.
  * Author: Hesham
  * Author URI: http://zebida.com
- * Version: 1.6.9.7
+ * Version: 1.6.9.8.1
  * Text Domain: schema-wp
  * Domain Path: languages
  *
@@ -51,7 +51,7 @@ final class Schema_WP {
 	 *
 	 * @since 1.0
 	 */
-	private $version = '1.6.9.7';
+	private $version = '1.6.9.8.1';
 
 	/**
 	 * The settings instance variable
@@ -195,8 +195,8 @@ final class Schema_WP {
 		if( is_admin() ) {
 		
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta/class-meta.php';
-			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta-tax/class-meta-tax.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta.php';
+			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta-tax/class-meta-tax.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta-tax.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/meta-exclude.php';
 			
@@ -204,6 +204,7 @@ final class Schema_WP {
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/settings/contextual-help.php';
 			
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/admin-pages.php';
+			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/extensions.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/scripts.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/class-menu.php';
 			require_once SCHEMAWP_PLUGIN_DIR . 'includes/admin/class-notices.php';
@@ -226,6 +227,7 @@ final class Schema_WP {
 		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/blog.php';
 		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/category.php';
 		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/tag.php';
+		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/post-type-archive.php';
 		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/taxonomy.php';
 		require_once SCHEMAWP_PLUGIN_DIR . 'includes/json/author.php';
 		
