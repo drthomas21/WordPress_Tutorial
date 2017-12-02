@@ -3,9 +3,9 @@ Contributors: hishaman, schemapress
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NGVUBT2QXN7YL
 Tags: schema, schema.org, json, json-ld, google, seo, structured data, markup, search engine, search, rich snippets, breadcrumbs, social, post, page, plugin, wordpress, content, article, news, search results, site name, knowledge graph, social, social profiles, keywords, meta-tags, metadata, tags, categories, optimize, ranking, search engine optimization, search engines, serp, sitelinks, google sitelinks, sitelinks search box, google sitelinks search box, semantic, structured, canonical, custom post types, post type, title, terms, media, images, thumb, featured, url, video, video markup, video object, VideoObject, video schema, audio object, AudioObject, audio schema, audio, sameAs, about, contact, amp, mobile, taxonomy
 Requires at least: 4.0
-Tested up to: 4.8.2
+Tested up to: 4.9
 Requires PHP: 5.4
-Stable tag: 1.6.9.7
+Stable tag: 1.6.9.8.1
 
 Get the next generation of Schema Structured Data to enhance your WordPress site presentation in Google search results.
 
@@ -146,6 +146,24 @@ Yes, Schema plugin will detect AMP plugin and output a more complete and valid s
 4. Google Structured Data Testing Tool.
 
 == Changelog ==
+
+= 1.6.9.8.1 =
+* Reverted back all changes made in version 1.6.9.8, since it breaks!
+
+= 1.6.9.8 =
+* Fixed reset post query in post type enabled function.
+* Fixed headlines and names, make sure to remove and clean HTML tags.
+* Fixed front-end styles and scripts is not needed, commented the function for now.
+* Enhanced the Knowledge Graph functionality by adding a new field for contact URL.
+* Added new feature, support for WPHeader and WPFooter markup.
+* Added new feature, support for ItemList markup on post types archive pages.
+* Added new admin page for plugin Extensions.
+* Added new function schema_wp_get_archive_link to get archive page link.
+* Added new function schema_wp_get_categories_as_keywords to be used by WPHeader.
+* Added new function to get blog posts page URL.
+* Added new integration and fix for Easy Digital Downloads (EDD) plugin.
+* Updated the readme.txt and README.md files and pumped the tested WP version to 4.9
+* Code cleanup.
 
 = 1.6.9.7 =
 * Fix for Sitelinks Search Box markup output, echo the value instead of returning it.
@@ -567,6 +585,12 @@ Yes, Schema plugin will detect AMP plugin and output a more complete and valid s
 * Initial Release
 
 == Upgrade Notice ==
+
+= 1.6.9.8.1 =
+In this update, we have reverted back and removed all changes made in version 1.6.9.8, since it seems to be broken! Please, update the plugin on your website now to get fixes.
+
+= 1.6.9.8 =
+In this release, most of the reported bugs has been fixed, including a fix for Easy Digital Downloads plugin. Also, new features has been introduced, example WPHeader and WPFooter markups, and support for ItemList markup on post types archive pages. Please, update the plugin on your website now to get fixes and enhancements.
 
 = 1.6.9.7 =
 This quick update include a fixe for Sitelinks Search Box markup output. Please, update the plugin on your site to get these fixes and enhancements.
