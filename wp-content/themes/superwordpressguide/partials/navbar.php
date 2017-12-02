@@ -18,6 +18,9 @@
             <li class="nav-item">
                 <a class="nav-link" href="https://github.com/drthomas21/WordPress_Tutorial" target="_blank">GitHub Repo</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="https://www.youtube.com/user/animeluvrboya" target="_blank">YouTube Page</a>
+            </li>
         </ul>
         <form class="form-inline my-2 my-lg-0" action="<?= site_url(); ?>">
             <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="s">
