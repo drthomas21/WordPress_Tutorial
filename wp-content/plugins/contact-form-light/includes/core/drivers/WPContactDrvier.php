@@ -16,7 +16,7 @@ class WPContactDriver {
             "src" => "https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js",
             "ver" => "1.6.4"
         ],
-        //"angular"
+        //"angular"....
     ];
 
     public static function getInstance(): self {
