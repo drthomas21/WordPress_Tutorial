@@ -20,7 +20,7 @@
             enable_page_level_ads: true
           });
         </script>
-        
+
         <?php if(is_user_logged_in()): ?>
         <style>
             nav.navbar {
@@ -34,6 +34,6 @@
         </style>
         <?php endif; ?>
     </head>
-    <body ng-app="app">
+    <body>
           <?php get_template_part("partials/navbar"); ?>
           <div class="container-fluid">
