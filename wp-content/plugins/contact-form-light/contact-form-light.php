@@ -2,8 +2,8 @@
 /**
 * Plugin Name: Contact Form light
 * Author: dathomas
-* Version: 0.1
-* Description: A simple lightweight contact form that uses angular, bootstrap, and Google's ReCaptcha
+* Version: 0.2
+* Description: Use the shortcode <strong>[contact_form_light]</strong> to add the contact form. A simple lightweight contact form that uses angular, bootstrap, and Google's reCAPTCHA.
 **/
 define('CONTACT_FORM_LIGHT_DIR',__DIR__);
 define('CONTACT_PLUGIN_NAME', "Contact Form Light");
