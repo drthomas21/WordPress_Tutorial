@@ -60,7 +60,6 @@ class EmailModel {
         global $wpdb;
 
         $props = $Record->__toArray();
-        var_dump($props,$Record);
         unset($props['id']);
         return $wpdb->insert(self::getTablename(),$props);
     }

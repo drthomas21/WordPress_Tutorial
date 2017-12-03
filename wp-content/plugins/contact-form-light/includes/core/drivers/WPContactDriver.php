@@ -116,6 +116,8 @@ class WPContactDriver {
     }
 
     protected function actionAjaxCallback() {
+        ignore_user_abort(true);
+
         $errors = [];
         $Record = new \Contact_Form_Light\Core\Records\EmailRecord();
         $fp = fopen("php://input","r");
@@ -151,9 +153,22 @@ class WPContactDriver {
         if(!empty($errors)) {
             wp_send_json_error($errors,200);
         } else {
+            ob_start();
+            if(session_id()) session_write_close();
             echo json_encode(["success"=>true,"messages"=>["Message has been sent"]]);
+            header('Content-Type: application/json');
+            header('Content-Encoding: none');
+            header('Connection: close');
+            header('Content-Length: ' . ob_get_length());
+            http_response_code(200);
+            ob_end_flush();
+            ob_flush();
             flush();
-            flush();
+            if (is_callable('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+
+            sleep(10);
 
             $success = \Contact_Form_Light\Core\Models\EmailModel::insertEmail($Record);
             if(!$success) {
