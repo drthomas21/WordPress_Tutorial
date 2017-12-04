@@ -2,7 +2,7 @@
 /**
 * Plugin Name: SEO Plugin
 * Author: dathomas
-* Version: 0.2a
+* Version: 0.3
 * Description: This is a simple SEO plugin to add meta 'description' and 'keywords'
 **/
 define("SEO_BASE",__DIR__);

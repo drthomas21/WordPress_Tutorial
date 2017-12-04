@@ -2,9 +2,9 @@
 <meta http-equiv="Content-Type" content="text/html; charset=<?= bloginfo( 'charset' ); ?>">
 <meta name="description" content="<?= strip_tags(get_the_excerpt()); ?>">
 <meta name="keywords" content="<?= get_the_keywords(); ?>" >
-<meta property="og:title" content="<?= get_the_title(); ?>">
+<meta property="og:title" content="<?= htmlentities(get_the_title(),ENT_QUOTES); ?>">
 <meta property="og:type" content="article" >
-<meta property="og:description" content="<?= strip_tags(get_the_excerpt()); ?>">
+<meta property="og:description" content="<?= htmlentities(strip_tags(get_the_excerpt()),ENT_QUOTES); ?>">
 <meta property="og:url" content="<?= get_permalink(); ?>">
 <link rel="canonical" href="<?= get_permalink(); ?>">
 
