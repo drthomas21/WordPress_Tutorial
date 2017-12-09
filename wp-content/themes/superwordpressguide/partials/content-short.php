@@ -6,7 +6,7 @@
     </div>
 
     <p class="col-xs-6 float-left">Categories: <?= get_the_category_link(); ?></p>
-    <p class="col-xs-6 float-right"><small class="post-date">Posted on <?php the_date(); ?></small></p>
+    <p class="col-xs-6 float-right"><small class="post-date">Posted <?= human_time_diff(strtotime($post->post_date),time()); ?> ago</small></p>
     <div class="clearfix"></div>
     <div class="post-excerpt text-center col-xs-12">
         <?php the_featured_content(); ?>

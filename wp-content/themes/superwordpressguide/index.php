@@ -43,8 +43,8 @@
         <div class="posts col-sm-12">
             <h2 class='text-center section-label'>OP;ED</h2>
             <?php foreach(get_posts(['posts_per_page' => 3,'category' => [412]]) as $post):  setup_postdata($post); ?>
-            <div class="col-sm-4 float-left">
-                <?php get_template_part("partials/content","short"); ?>
+            <div class="col-lg-4 col-md-12 float-left">
+                <div class="col-sm-12"><?php get_template_part("partials/content","short"); ?></div>
             </div>
             <?php endforeach; ?>
         </div>
@@ -57,7 +57,7 @@
             <h2 class='text-center section-label'>More Posts</h2>
             <?php $c = 0; while(have_posts()): $c++; the_post(); ?>
             <div class="col-lg-4 col-md-12 float-left">
-                <?php get_template_part("partials/content","short"); ?>
+                <div class="col-sm-12"><?php get_template_part("partials/content","short"); ?></div>
             </div>
             <?php if($c % 3 == 0): ?><div class="col-md-12 clearfix"></div><?php endif; ?>
             <?php endwhile; ?>
