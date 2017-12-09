@@ -9,16 +9,6 @@
             <?php endif; ?>
         </div>
         <div class="col-sm-4 col-xl-4 float-right text-center">
-            <div class="goole-ad">
-                <!-- article_page -->
-                <ins class="adsbygoogle"
-                     style="display:inline-block;width:300px;height:600px"
-                     data-ad-client="ca-pub-6823528022937171"
-                     data-ad-slot="5361989274"></ins>
-                <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-            </div>
             <?php if(!empty(list_popular_videos(0,2))): ?>
                 <div class="youtube-vids">
                     <h2 class='text-center section-label'>Going Viral?</h2>
