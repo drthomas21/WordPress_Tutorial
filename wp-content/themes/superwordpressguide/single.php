@@ -9,7 +9,7 @@
             <?php endif; ?>
         </div>
         <div class="col-sm-4 col-xl-4 float-right text-center">
-            <?php if(!empty(list_popular_videos(0,2))): ?>
+            <?php if(function_exists('list_popular_videos') && !empty(list_popular_videos(0,2))): ?>
                 <div class="youtube-vids">
                     <h2 class='text-center section-label'>Going Viral?</h2>
                     <?php foreach(list_popular_videos(0,3) as $Video): ?>

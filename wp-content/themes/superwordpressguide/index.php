@@ -3,7 +3,7 @@
     <div class="main-content">
         <div class="col-md-12 col-lg-8 float-left">
             <div class="col-xl-6 main-content-1">
-                <?php if(!empty(list_recent_videos(0,2))): ?>
+                <?php if(function_exists('list_recent_videos') && !empty(list_recent_videos(0,2))): ?>
                     <div class="youtube-vids">
                         <h2 class='text-center section-label'>Newest Video</h2>
                         <?php foreach(list_recent_videos(0,2) as $Video): ?>
@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="col-md-12 col-lg-4 float-right">
-            <?php if(!empty(list_popular_videos(0,2))): ?>
+            <?php if(function_exists('list_popular_videos') && !empty(list_popular_videos(0,2))): ?>
                 <div class="col-lg-12 youtube-vids">
                     <h2 class='text-center section-label'>Going Viral?</h2>
                     <?php foreach(list_popular_videos(0,2) as $Video): ?>
