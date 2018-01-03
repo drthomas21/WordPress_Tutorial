@@ -71,10 +71,10 @@ add_action("after_setup_theme",function() {
 
 add_action("wp",function() {
     wp_deregister_script("jquery");
-    wp_register_script("jquery",get_asset_url("js/jquery.min.js"),array(),"3.2.1",true);
+    wp_register_script("jquery",get_asset_url("js/jquery.min.js"),array(),"3.2.1",false);
     //wp_register_script("angularjs",get_asset_url("js/angular.min.js"),array("jquery"),"1.6.6",true);
     //wp_register_script("angularjs-sanitize",get_asset_url("js/angular-sanitize.min.js"),array("angularjs"),"1.6.6",true);
-    wp_register_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",true);
+    wp_register_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",false);
     //wp_register_script("bootstrap-map",get_asset_url("js/bootstrap.min.js.map"),array("jquery"),"4.0.0",true);
     wp_register_script("bootstrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js",array("jquery","popper"),"4.0.0",true);
 

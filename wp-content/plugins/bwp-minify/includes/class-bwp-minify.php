@@ -2721,7 +2721,7 @@ class BWP_MINIFY extends BWP_FRAMEWORK_IMPROVED
 		switch ($type)
 		{
 			case 'script':
-				$return  = "<script type='text/javascript' src='"
+				$return  = "<script type='text/javascript' async='async' src='"
 					. esc_url($string)
 					. "'></script>\r\n";
 				break;
