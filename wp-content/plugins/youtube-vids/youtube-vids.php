@@ -9,7 +9,7 @@ define("OAUTH_KEYS",[
 	]
 ]);
 * Author: dathomas
-* Version: 0.3
+* Version: 0.4
 **/
 
 /**
@@ -48,30 +48,40 @@ require_once __DIR__.'/vendor/autoload.php';
 \Youtube_Vids\Controllers\AdminController::getInstance();
 
 function list_popular_videos(int $offset = 0, int $limit = 10): array {
-    $Controller = new \Youtube_Vids\Controllers\PageController();
-    $list = $Controller->getPopularVideos($offset,$limit);
+    $list = wp_cache_get("list_popular_videos","youtube_vids");
 
-    if(!empty($list)) {
-        update_option(__FUNCTION__,$list,false);
-    }
+    if(!$list || !is_array($list) || empty(array_slice($list,$offset,$limit))) {
+        $Controller = new \Youtube_Vids\Controllers\PageController();
+        $list = $Controller->getPopularVideos($offset,$limit);
 
-    if(empty($list)) {
-        $list = get_option(__FUNCTION__,array());
+        if(!empty($list)) {
+            update_option(__FUNCTION__,$list,false);
+            wp_cache_set("list_popular_videos",$list,"youtube_vids",86400);
+        }
+
+        if(empty($list)) {
+            $list = get_option(__FUNCTION__,array());
+        }
     }
 
     return array_slice($list,$offset,$limit);
 }
 
 function list_recent_videos(int $offset = 0, int $limit = 10): array {
-    $Controller = new \Youtube_Vids\Controllers\PageController();
-    $list = $Controller->getRecentVideos($offset,$limit);
+    $list = wp_cache_get("list_recent_videos","youtube_vids");
 
-    if(!empty($list)) {
-        update_option(__FUNCTION__,$list,false);
-    }
+    if(!$list || !is_array($list) || empty(array_slice($list,$offset,$limit))) {
+        $Controller = new \Youtube_Vids\Controllers\PageController();
+        $list = $Controller->getRecentVideos($offset,$limit);
 
-    if(empty($list)) {
-        $list = get_option(__FUNCTION__,array());
+        if(!empty($list)) {
+            update_option(__FUNCTION__,$list,false);
+            wp_cache_set("list_recent_videos",$list,"youtube_vids",86400);
+        }
+
+        if(empty($list)) {
+            $list = get_option(__FUNCTION__,array());
+        }
     }
 
     return array_slice($list,$offset,$limit);
