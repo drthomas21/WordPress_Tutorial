@@ -25,6 +25,8 @@ class GoogleApiDriver {
 
     public function checkAccessToken(): bool {
         $token = $this->getAccessToken();
+        if(empty($token)) return false;
+
         $this->GoogleClient->setAccessToken($token);
         return !$this->GoogleClient->isAccessTokenExpired();
     }
@@ -35,7 +37,10 @@ class GoogleApiDriver {
     }
 
     public function refreshAccessToken(): bool {
-        $this->GoogleClient->setAccessToken($this->getAccessToken());
+        $token = $this->getAccessToken();
+        if(empty($token)) return false;
+
+        $this->GoogleClient->setAccessToken($token);
         if($this->checkAccessToken()) {
             return true;
         } else {
