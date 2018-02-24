@@ -55,6 +55,15 @@ class WP_Object_Cache {
 	protected $global_groups = array();
 
 	/**
+	 * List of non-persistent cache groups.
+	 *
+	 * @since 3.0.0
+	 * @access protected
+	 * @var array
+	 */
+	protected $non_persistent_groups = array();
+
+	/**
 	 * The blog prefix to prepend to keys in non-global groups.
 	 *
 	 * @since 3.5.0
@@ -172,6 +181,13 @@ class WP_Object_Cache {
 		$this->global_groups = array_merge( $this->global_groups, $groups );
 	}
 
+	public function add_non_persistent_groups($groups) {
+		$groups = (array) $groups;
+
+		$groups = array_fill_keys( $groups, true );
+		$this->non_persistent_groups = array_merge($this->non_persistent_groups, $groups);
+	}
+
 	/**
 	 * Decrements numeric cache item's value.
 	 *
@@ -203,7 +219,9 @@ class WP_Object_Cache {
 		if ( $this->cache[ $group ][ $key ] < 0 )
 			$this->cache[ $group ][ $key ] = 0;
 
-        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set($group.'::'.$key,$this->cache[ $group ][ $key ],3600);
+		if((array_key_exists($group,$this->non_persistent_groups) && !$this->non_persistent_groups[$group]) || !array_key_exists($group,$this->non_persistent_groups)) {
+			\MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set(MEMCACHED_PREFIX . '::' . $group.'::'.$key,$this->cache[ $group ][ $key ],3600);
+		}
 		return $this->cache[ $group ][ $key ];
 	}
 
@@ -231,7 +249,8 @@ class WP_Object_Cache {
 			return false;
 
 		unset( $this->cache[$group][$key] );
-        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->delete($group.'::'.$key);
+	    \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->delete(MEMCACHED_PREFIX . '::' . $group.'::'.$key);
+
 		return true;
 	}
 
@@ -285,7 +304,7 @@ class WP_Object_Cache {
 			else
 				return $this->cache[$group][$key];
 		} else {
-            $item = \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->get($group.'::'.$key);
+            $item = \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->get(MEMCACHED_PREFIX . '::' . $group.'::'.$key);
             if($item && is_object($item)) {
                 $this->cache[$group][$key] = $item;
             } elseif($item) {
@@ -338,7 +357,9 @@ class WP_Object_Cache {
 		if ( $this->cache[ $group ][ $key ] < 0 )
 			$this->cache[ $group ][ $key ] = 0;
 
-        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set($group.'::'.$key,$this->cache[ $group ][ $key ],3600);
+		if((array_key_exists($group,$this->non_persistent_groups) && !$this->non_persistent_groups[$group]) || !array_key_exists($group,$this->non_persistent_groups)) {
+	        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set(MEMCACHED_PREFIX . '::' . $group.'::'.$key,$this->cache[ $group ][ $key ],3600);
+		}
 		return $this->cache[ $group ][ $key ];
 	}
 
@@ -420,7 +441,9 @@ class WP_Object_Cache {
 		if ( is_object( $data ) )
 			$data = clone $data;
 
-        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set($group.'::'.$key,$data,(int) $expire);
+		if((array_key_exists($group,$this->non_persistent_groups) && !$this->non_persistent_groups[$group]) || !array_key_exists($group,$this->non_persistent_groups)) {
+	        \MU_Plugins\Drivers\Memcached\MemcachedDriver::getInstance()->set(MEMCACHED_PREFIX . '::' . $group.'::'.$key,$data,(int) $expire);
+		}
 		$this->cache[$group][$key] = $data;
 		return true;
 	}

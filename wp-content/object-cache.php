@@ -7,7 +7,7 @@ spl_autoload_register(function ($class_name) {
 
     if(file_exists(__DIR__. DIRECTORY_SEPARATOR . $path . ".php")) {
         include_once(__DIR__. DIRECTORY_SEPARATOR . $path . ".php");
-    }	
+    }
 });
 
 /**
@@ -244,6 +244,9 @@ function wp_cache_add_global_groups( $groups ) {
  */
 function wp_cache_add_non_persistent_groups( $groups ) {
 	// Default cache doesn't persist so nothing to do here.
+	global $wp_object_cache;
+
+	$wp_object_cache->add_non_persistent_groups( $groups );
 }
 
 /**
