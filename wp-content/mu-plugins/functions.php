@@ -49,3 +49,7 @@ function get_the_keywords(WP_Post $Post = null, int $limit = 15): string {
 function the_keywords(WP_Post $Post = null, int $limit = 15) {
     echo get_the_keywords($Post,$limit);
 }
+
+function isProd() {
+    return array_key_exists("isProd",$_SERVER) && boolval($_SERVER['isProd']);
+}

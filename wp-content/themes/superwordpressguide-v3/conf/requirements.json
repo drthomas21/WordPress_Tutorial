@@ -1,0 +1,13 @@
+{
+    "angularjs":{
+        "name":"app",
+        "isMin":true,
+        "modules":[
+            "ngAria",
+            "ngAnimate",
+            "ngCookies",
+            "ngRoute",
+            "ngSanitize",
+        ]
+    }
+}
