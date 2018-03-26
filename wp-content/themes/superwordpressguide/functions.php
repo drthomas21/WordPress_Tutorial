@@ -1,5 +1,5 @@
 <?php
-define("THEME_VERSION","2.1");
+define("THEME_VERSION","2.2");
 
 function get_asset_url(string $path): string {
     return get_template_directory_uri().'/assets/'.trim($path," \t\n\r\0\x0B/");

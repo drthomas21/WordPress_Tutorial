@@ -2,6 +2,7 @@
 <html lang="en" ng-app="app" ng-cloak>
 <head>
     <title><?php wp_title(); ?></title>
+    <base href="<?= site_url("/"); ?>" >
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -22,10 +23,9 @@
         </style>
     <?php endif; ?>
 </head>
-<body>
+<body ng-controller="PageCtrl">
     <?php get_template_part("partials/navbar"); ?>
-    <div class="container-fluid">
-    </div>
+    <div class="container-fluid" ng-view></div>
     <?php get_template_part("partials/footer"); ?>
     <?php wp_footer(); ?>
 </body>

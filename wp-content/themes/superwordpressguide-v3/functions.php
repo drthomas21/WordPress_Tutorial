@@ -1,5 +1,7 @@
 <?php
 define("THEME_VERSION","3.0");
+\Themes\Superwordpressguide_V3\Conf\AngularBuilder::getInstance();
+\Themes\Superwordpressguide_V3\Util\Ajax\NgTemplateService::getInstance();
 
 function get_asset_url(string $path): string {
     return get_template_directory_uri().'/assets/'.trim($path," \t\n\r\0\x0B/");
@@ -72,19 +74,10 @@ add_action("after_setup_theme",function() {
 add_action("wp",function() {
     wp_deregister_script("jquery");
     wp_register_script("jquery",get_asset_url("js/jquery.min.js"),array(),"3.2.1",false);
-    wp_register_script("angularjs",get_asset_url("js/angular.min.js"),array("jquery"),"1.6.6",true);
-    wp_register_script("angularjs-sanitize",get_asset_url("js/angular-sanitize.min.js"),array("angularjs"),"1.6.6",true);
-    wp_register_script("angularjs-cookies",get_asset_url("js/angular-sanitize.min.js"),array("angularjs"),"1.6.6",true);
     wp_register_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",false);
     wp_register_script("bootstrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js",array("jquery","popper"),"4.0.0",true);
-
-    wp_register_script("main",get_asset_url("js/main.js"),array("jquery","bootstrap"),THEME_VERSION,true);
-    if(is_home()) {
-        wp_register_script("home",get_asset_url("js/home.js"),array("jquery","bootstrap"),THEME_VERSION,true);
-    }
-    if(is_single() && !is_attachment()) {
-        wp_register_script("sharethis","//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons");
-    }
+    wp_register_script("app",get_asset_url('js/app.js'),['angularjs'],THEME_VERSION,true);
+    wp_register_script("sharethis","//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons");
 
     //WP Enqueue Styles
     wp_register_style("boostrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",array(),"4.0.0","all");
@@ -94,19 +87,10 @@ add_action("wp",function() {
 add_action("wp_enqueue_scripts",function() {
     //WP Enqueue Script
     wp_enqueue_script("jquery");
-    //wp_enqueue_script("angularjs");
-    //wp_enqueue_script("angularjs-sanitize");
     wp_enqueue_script("popper");
-    //wp_enqueue_script("bootstrap-map");
     wp_enqueue_script("bootstrap");
-    wp_enqueue_script("main");
-    if(is_home()) {
-        wp_enqueue_script("home");
-    }
-
-    if(is_single() && !is_attachment()) {
-        wp_enqueue_script("sharethis");
-    }
+    //wp_enqueue_script("app");
+    //wp_enqueue_script("sharethis");
 
     //WP Enqueue Styles
     wp_enqueue_style("boostrap");
