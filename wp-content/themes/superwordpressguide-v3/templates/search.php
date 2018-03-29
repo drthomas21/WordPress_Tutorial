@@ -1,4 +1,4 @@
-<section class="category blog-header">
+<section class="search blog-header">
     <div class="page-container row">
         <div class="col-md-8 col-sm-12 row">
             <h1 class="text-center col-sm-12" ng-bind="pageTitle"></h1>

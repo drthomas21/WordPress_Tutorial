@@ -1,7 +1,7 @@
 <!Doctype HTML>
-<html lang="en" ng-app="app" ng-cloak>
+<html lang="en" ng-app="app" ng-cloak ng-controller="PageCtrl">
 <head>
-    <title><?php wp_title(); ?></title>
+    <title ng-bind="pageTitle"></title>
     <base href="<?= site_url("/"); ?>" >
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -23,7 +23,7 @@
         </style>
     <?php endif; ?>
 </head>
-<body ng-controller="PageCtrl">
+<body>
     <?php get_template_part("partials/navbar"); ?>
     <div class="container-fluid" ng-view></div>
     <?php get_template_part("partials/footer"); ?>

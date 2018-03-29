@@ -41,7 +41,7 @@ h2.section-label {
     resize: both;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    padding-top:50vh;
+    padding-top:25vw;
 }
 
 .homepage .main-content {
@@ -107,10 +107,6 @@ a, .navbar-light .navbar-brand {
 
 .youtube-vids > div {
     margin-bottom: 20px;
-}
-
-.page-container > div {
-    margin: auto;
 }
 
 .sharethis-inline-share-buttons {
