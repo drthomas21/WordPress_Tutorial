@@ -52,7 +52,7 @@ function list_popular_videos(int $offset = 0, int $limit = 10): array {
 
     if(!$list || !is_array($list) || empty(array_slice($list,$offset,$limit))) {
         $Controller = new \Youtube_Vids\Controllers\PageController();
-        $list = $Controller->getPopularVideos($offset,$limit*3);
+        $list = $Controller->getPopularVideos($offset,30);
 
         if(!empty($list)) {
             update_option(__FUNCTION__,$list,false);
@@ -72,7 +72,7 @@ function list_recent_videos(int $offset = 0, int $limit = 10): array {
 
     if(!$list || !is_array($list) || empty(array_slice($list,$offset,$limit))) {
         $Controller = new \Youtube_Vids\Controllers\PageController();
-        $list = $Controller->getRecentVideos($offset,$limit*3);
+        $list = $Controller->getRecentVideos($offset,30);
 
         if(!empty($list)) {
             update_option(__FUNCTION__,$list,false);

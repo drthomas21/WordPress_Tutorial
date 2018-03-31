@@ -36,7 +36,14 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     $locationProvider.html5Mode(true);
 }])
-.controller("PageCtrl",["$scope","$rootScope","$http","$timeout","$interval","$location","$route",function($scope,$rootScope,$http,$timeout,$interval,$route) {
+.controller("PageCtrl",["$scope","$rootScope","$http","$timeout","$interval","$location","$route","$sce",function($scope,$rootScope,$http,$timeout,$interval,$route,$sce) {
+    $scope.cached = {
+        Posts: [],
+        Terms: []
+    };
+    $scope.latestVideos = [];
+    $scope.popularVideos = [];
+    $scope.latestPosts = [];
     $scope.pageTitle = "AngularJS App";
 
     $scope.getPosts = function(offset, limit, callback) {
@@ -74,23 +81,78 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         });
     }
 
+    $scope.getPostsForTag = function(id, offset, limit, callback) {
+        $http.get("/wp-json/data/v1/posts?offset="+offset+"&limit="+limit+"&tag="+id)
+        .then(function(response){
+            callback(response.data);
+        });
+    }
+
     $scope.getFullArticle = function(post_name,callback) {
+        for(i in $scope.cached.Posts) {
+            if($scope.cached.Posts[i].ID == post_name || $scope.cached.Posts[i].post_name == post_name) {
+                callback($scope.cached.Posts[i]);
+                return;
+            }
+        }
+
         $http.get("/wp-json/data/v1/post/"+post_name+ "?post_type=post")
         .then(function(response){
+            if(response.data) {
+                $scope.cached.Posts.push(response.data);
+            }
             callback(response.data);
         });
     }
 
     $scope.getFullPage = function(post_name,callback) {
+        for(i in $scope.cached.Posts) {
+            if($scope.cached.Posts[i].ID == post_name || $scope.cached.Posts[i].post_name == post_name) {
+                callback($scope.cached.Posts[i]);
+                return;
+            }
+        }
+
         $http.get("/wp-json/data/v1/post/"+post_name + "?post_type=page")
         .then(function(response){
+            if(response.data) {
+                $scope.cached.Posts.push(response.data);
+            }
+
             callback(response.data);
         });
     }
 
-    $scope.getSummaryArticle = function(id,callback) {
-        $http.get("/wp-json/data/v1/post/"+id+"?type=excerpt")
+    $scope.getCategory = function(term,callback) {
+        for(i in $scope.cached.Terms) {
+            if($scope.cached.Terms[i].term_id == term || $scope.cached.Terms[i].slug == term) {
+                callback($scope.cached.Terms[i]);
+                return;
+            }
+        }
+
+        $http.get("/wp-json/data/v1/term/"+term+ "?taxonomy=category")
         .then(function(response){
+            if(response.data) {
+                $scope.cached.Terms.push(response.data);
+            }
+            callback(response.data);
+        });
+    }
+
+    $scope.getTag = function(term,callback) {
+        for(i in $scope.cached.Terms) {
+            if($scope.cached.Terms[i].term_id == term || $scope.cached.Terms[i].slug == term) {
+                callback($scope.cached.Terms[i]);
+                return;
+            }
+        }
+
+        $http.get("/wp-json/data/v1/term/"+term+ "?taxonomy=post_tag")
+        .then(function(response){
+            if(response.data) {
+                $scope.cached.Terms.push(response.data);
+            }
             callback(response.data);
         });
     }
@@ -115,7 +177,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             return false;
         }
         else if(search.s && !$route.absUrl().match(/\/search\/\?/)) {
-            console.log("here");
             var params = [];
 
             for(param in search) {
@@ -125,16 +186,9 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             return false;
         }
     });
-}])
-.controller("HomepageCtrl",["$scope","$rootScope","$sce",function($scope,$rootScope,$sce){
-    $scope.latestVideos = [];
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
-    $scope.opEdPosts = [];
 
-    function init() {
-        $scope.$parent.setPageTitle("Super WordPress Guide Homepage");
-        $scope.$parent.getVideos(0,2,function(videos) {
+    var init = function() {
+        $scope.getVideos(0,10,function(videos) {
             if(videos) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
@@ -145,7 +199,8 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             }
         });
-        $scope.$parent.getPopularVideos(0,2,function(videos) {
+
+        $scope.getPopularVideos(0,10,function(videos) {
             if(videos) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
@@ -157,7 +212,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             }
         });
 
-        $scope.$parent.getPosts(0,11,function(posts) {
+        $scope.getPosts(0,11,function(posts) {
             if(posts) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
@@ -168,6 +223,16 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             }
         });
+    }
+
+    init();
+}])
+.controller("HomepageCtrl",["$scope","$rootScope","$sce",function($scope,$rootScope,$sce){
+    $scope.opEdPosts = [];
+
+    function init() {
+        $scope.$parent.setPageTitle("Super WordPress Guide Homepage");
+
         $scope.$parent.getPostsForCategory(412,0,4,function(posts) {
             if(posts) {
                 if(!$scope.$$phase) {
@@ -188,24 +253,10 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("ArticleCtrl",["$scope","$rootScope","$sce","$routeParams","$location",function($scope,$rootScope,$sce,$routeParams,$location){
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
+.controller("ArticleCtrl",["$scope","$rootScope","$routeParams","$location","$sce",function($scope,$rootScope,$routeParams,$location,$sce){
     $scope.Post = {};
 
     function init() {
-        $scope.$parent.getPopularVideos(0,3,function(videos) {
-            if(videos) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.popularVideos = videos;
-                    });
-                } else {
-                    $scope.popularVideos = videos;
-                }
-            }
-        });
-
         var search = $location.search();
         if(search.p || search.preview_id) {
             var preview_id = search.p || search.preview_id;
@@ -241,17 +292,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             });
         }
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
-            }
-        });
     }
 
     $scope.getYoutubeUrl = function(id) {
@@ -260,24 +300,10 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("PostCtrl",["$scope","$rootScope","$sce","$routeParams","$location",function($scope,$rootScope,$sce,$routeParams,$location){
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
+.controller("PostCtrl",["$scope","$rootScope","$routeParams","$location","$sce",function($scope,$rootScope,$routeParams,$location,$sce){
     $scope.Post = {};
 
     function init() {
-        $scope.$parent.getPopularVideos(0,3,function(videos) {
-            if(videos) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.popularVideos = videos;
-                    });
-                } else {
-                    $scope.popularVideos = videos;
-                }
-            }
-        });
-
         $scope.$parent.getFullPage($routeParams.post_name,function(Post) {
             if(Post) {
                 if(!$scope.$$phase) {
@@ -291,17 +317,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             } else {
                 $location.url("/?s="+$routeParams.post_name);
-            }
-        });
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
             }
         });
     }
@@ -322,23 +337,9 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         "recaptcha":""
     };
 
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
     $scope.Post = {};
 
     function init() {
-        $scope.$parent.getPopularVideos(0,3,function(videos) {
-            if(videos) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.popularVideos = videos;
-                    });
-                } else {
-                    $scope.popularVideos = videos;
-                }
-            }
-        });
-
         $scope.$parent.getFullPage("contact",function(Post) {
             if(Post) {
                 if(!$scope.$$phase) {
@@ -352,17 +353,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             } else {
                 $location.url("/?s="+$routeParams.post_name);
-            }
-        });
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
             }
         });
     }
@@ -399,26 +389,13 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("SearchCtrl",["$scope","$rootScope","$sce","$routeParams","$location",function($scope,$rootScope,$sce,$routeParams,$location){
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
+.controller("SearchCtrl",["$scope","$rootScope","$routeParams","$location","$sce",function($scope,$rootScope,$routeParams,$location,$sce){
     $scope.Post = {};
 
     function init() {
         var search = $location.search();
 
         $scope.$parent.setPageTitle("Search for: " + search.s.replace(/-/g," ").replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}));
-        $scope.$parent.getPopularVideos(0,4,function(videos) {
-            if(videos) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.popularVideos = videos;
-                    });
-                } else {
-                    $scope.popularVideos = videos;
-                }
-            }
-        });
 
         $scope.$parent.searchPosts(search.s,0,10,function(Posts) {
             if(Posts) {
@@ -431,17 +408,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             }
         });
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
-            }
-        });
     }
 
     $scope.getYoutubeUrl = function(id) {
@@ -450,25 +416,31 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("CategoryCtrl",["$scope","$rootScope","$sce","$routeParams","$location",function($scope,$rootScope,$sce,$routeParams,$location){
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
-    $scope.Post = {};
+.controller("CategoryCtrl",["$scope","$rootScope","$routeParams","$location","$sce",function($scope,$rootScope,$routeParams,$location,$sce){
+    $scope.Posts = {};
+    $scope.Term = {};
 
     function init() {
         var search = $location.search();
-        console.log($routeParams);
 
         $scope.$parent.setPageTitle("Category: " + $routeParams.slug);
-        $scope.$parent.getPopularVideos(0,4,function(videos) {
-            if(videos) {
+
+        $scope.$parent.getPostsForCategory($routeParams.slug,0,10,function(Posts) {
+            if(Posts) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
-                        $scope.popularVideos = videos;
+                        $scope.Posts = Posts;
                     });
                 } else {
-                    $scope.popularVideos = videos;
+                    $scope.Posts = Posts;
                 }
+            }
+        });
+
+        $scope.$parent.getCategory($routeParams.slug,function(Term){
+            if(Term) {
+                $scope.Term = Term;
+                $scope.$parent.setPageTitle("Category: " + Term.name.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}));
             }
         });
 
@@ -485,17 +457,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             }
         });
 */
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
-            }
-        });
     }
 
     $scope.getYoutubeUrl = function(id) {
@@ -504,25 +465,31 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("TagCtrl",["$scope","$rootScope","$sce","$routeParams","$location",function($scope,$rootScope,$sce,$routeParams,$location){
-    $scope.popularVideos = [];
-    $scope.latestPosts = [];
-    $scope.Post = {};
+.controller("TagCtrl",["$scope","$rootScope","$routeParams","$location","$sce",function($scope,$rootScope,$routeParams,$location,$sce){
+    $scope.Posts = {};
+    $scope.Term = {};
 
     function init() {
         var search = $location.search();
-        console.log($routeParams);
 
         $scope.$parent.setPageTitle("Tag: " + $routeParams.slug);
-        $scope.$parent.getPopularVideos(0,4,function(videos) {
-            if(videos) {
+
+        $scope.$parent.getPostsForTag($routeParams.slug,0,10,function(Posts) {
+            if(Posts) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
-                        $scope.popularVideos = videos;
+                        $scope.Posts = Posts;
                     });
                 } else {
-                    $scope.popularVideos = videos;
+                    $scope.Posts = Posts;
                 }
+            }
+        });
+
+        $scope.$parent.getTag($routeParams.slug,function(Term){
+            if(Term) {
+                $scope.Term = Term;
+                $scope.$parent.setPageTitle("Category: " + Term.name.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}));
             }
         });
 
@@ -539,17 +506,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             }
         });
 */
-        $scope.$parent.getPosts(0,3,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
-            }
-        });
     }
 
     $scope.getYoutubeUrl = function(id) {

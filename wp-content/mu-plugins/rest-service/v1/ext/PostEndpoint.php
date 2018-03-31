@@ -20,15 +20,12 @@ class PostEndpoint implements BaseRestfulEndpoint {
 
     protected function getPosts(\WP_REST_Request $Request):array {
         global $post;
-        $category = intval($Request->get_param('category'));
-        $tag = intval($Request->get_param('tag'));
+        $category = $Request->get_param('category');
+        $tag = $Request->get_param('tag');
         $limit = intval($Request->get_param('limit'));
         $offset = intval($Request->get_param('offset'));
         $search = $Request->get_param('search');
 
-        if($category < 0) {
-            $category = 0;
-        }
         if($limit <= 0) {
             $limit = 10;
         }
@@ -63,9 +60,18 @@ class PostEndpoint implements BaseRestfulEndpoint {
         if($search) {
             $args['s'] = $search;
         } elseif($category) {
-            $args['category'] = $category;
+            if(is_numeric($category)) {
+                $args['category'] = intval($category);
+            } else {
+                $args['category_name'] = $category;
+            }
+
         } elseif($tag) {
-            $args['tag'] = $tag;
+            if(is_numeric($tag)) {
+                $args['tag_id  '] = intval($tag);
+            } else {
+                $args['tag '] = $tag;
+            }
         }
 
         $Posts = \get_posts($args);

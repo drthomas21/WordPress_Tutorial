@@ -3,7 +3,7 @@
         <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 main-content-1">
             <div class="youtube-vids">
                 <h2 class="text-center section-label">Newest Videos</h2>
-                <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in latestVideos">
+                <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in latestVideos | limitTo: 2">
                     <iframe class="embed-responsive-item" ng-src="{{getYoutubeUrl(Video.id)}}" allowfullscreen></iframe>
                 </div>
             </div>
@@ -33,7 +33,7 @@
         </div>
         <div class="col-xl-4 col-lg-12 youtube-vids">
             <h2 class="text-center section-label">Going Viral?</h2>
-            <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in popularVideos">
+            <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in popularVideos | limitTo: 2">
                 <iframe class="embed-responsive-item" ng-src="{{getYoutubeUrl(Video.id)}}" allowfullscreen></iframe>
             </div>
         </div>

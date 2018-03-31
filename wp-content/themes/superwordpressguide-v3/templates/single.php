@@ -13,7 +13,7 @@
         <div class="col-sm-12 col-md-4">
             <div class="youtube-vids">
                 <h2 class="text-center section-label">Going Viral?</h2>
-                <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in popularVideos">
+                <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in popularVideos | limitTo: 3">
                     <iframe class="embed-responsive-item" ng-src="{{getYoutubeUrl(Video.id)}}" allowfullscreen></iframe>
                 </div>
             </div>

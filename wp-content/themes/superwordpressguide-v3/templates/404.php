@@ -10,7 +10,7 @@
             </p>
         </div>
         <div class="youtube-vids row">
-            <div class="embed-responsive embed-responsive-16by9 col-sm-6" ng-repeat="Video in poularVideos">
+            <div class="embed-responsive embed-responsive-16by9 col-sm-6" ng-repeat="Video in poularVideos | limitTo: 3">
                 <iframe class="embed-responsive-item" ng-src="{{getYoutubeUrl(Video.id)}}" allowfullscreen></iframe>
             </div>
         </div>

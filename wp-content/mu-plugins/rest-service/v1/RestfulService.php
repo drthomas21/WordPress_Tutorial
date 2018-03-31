@@ -10,10 +10,12 @@ class RestfulService extends \WP_REST_Controller{
 
         $this->PostEndpoint = new Ext\PostEndpoint();
         $this->VideoEndpoint = new Ext\YoutubeEndpoint();
+        $this->TermEndpoint = new Ext\TermEndpoint();
     }
 
     public function register_routes() {
         $this->PostEndpoint->registerEndpoints($this->namespace);
         $this->VideoEndpoint->registerEndpoints($this->namespace);
+        $this->TermEndpoint->registerEndpoints($this->namespace);
     }
 }
