@@ -187,6 +187,12 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         }
     });
 
+    $scope.$on("$routeChangeSuccess",function(e,current,previous){
+        if(typeof ga != "undefined") {
+            ga("send","pageview",$route.url());
+        }
+    })
+
     var init = function() {
         $scope.getVideos(0,10,function(videos) {
             if(videos) {
