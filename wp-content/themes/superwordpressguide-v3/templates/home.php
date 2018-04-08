@@ -84,7 +84,7 @@
                         <div class="col-sm-6 text-right"><small>Posted <span ng-bind-html="Post.human_time"></span> ago</small></div>
                     </div>
                     <div class="row">
-                        <div class="post-excerpt col-sm-12" ng-bind-html="Post.post_content"></div>
+                        <div class="post-excerpt text-center col-sm-12" ng-bind-html="Post.post_content"></div>
                     </div>
                     <div class="row">
                         <div class="read-more col-sm-12"><a ng-href="{{Post.permalink.href}}" ng-attr-alt="{{Post.permalink.alt}}">Read More &gt;</a></div>
