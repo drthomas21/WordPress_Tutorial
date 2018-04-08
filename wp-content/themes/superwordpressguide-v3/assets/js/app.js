@@ -191,6 +191,8 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         if(typeof ga != "undefined") {
             ga("send","pageview",$route.url());
         }
+
+        angular.element("html,body").animate({scrollTop: '0px'}, "slow");
     })
 
     var init = function() {

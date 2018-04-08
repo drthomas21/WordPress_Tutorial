@@ -14,7 +14,7 @@ function get_the_leading_asset(string $postContent = ""): string {
     $content = "";
 
     if(has_post_thumbnail()) {
-        $content = preg_replace("/class\s*=\s*[\'\"][A-Za-z0-9\-\_\s]+[\'\"]/","class='\$1 img-fluid'",get_the_post_thumbnail(null,"large"));
+        $content = preg_replace("/class\s*=\s*[\'\"][A-Za-z0-9\-\_\s]+[\'\"]/","class='\$1 rounded img-fluid'",get_the_post_thumbnail(null,"large"));
     } elseif(get_media_embedded_in_content($postContent,["video","object","embed","iframe"])) {
         $list = get_media_embedded_in_content($postContent,["video","object","embed","iframe"]);
         if(!empty($list)) {
