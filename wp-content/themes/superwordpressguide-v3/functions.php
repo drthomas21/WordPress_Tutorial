@@ -73,14 +73,18 @@ add_action("after_setup_theme",function() {
 
 add_action("wp",function() {
     wp_deregister_script("jquery");
-    wp_register_script("jquery",get_asset_url("js/jquery.min.js"),array(),"3.2.1",false);
-    wp_register_script("popper",get_asset_url("js/popper.min.js"),array("jquery"),"1.12.3",false);
-    wp_register_script("bootstrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js",array("jquery","popper"),"4.0.0",true);
-    wp_register_script("app",get_asset_url('js/app.js'),['angularjs'],THEME_VERSION,true);
+    wp_register_script("jquery",get_asset_url("js/jquery.min.js"),[],"3.2.1",false);
+    //wp_register_script("popper","https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js",array("jquery"),"1.12.3",true);
+    wp_register_script("popper",get_asset_url("js/popper.min.js"),['jquery'],"1.12.3",true);
+    //wp_register_script("bootstrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js",array("jquery","popper"),"4.0.0",true);
+    wp_register_script("bootstrap",get_asset_url("js/bootstrap.min.js"),['jquery','popper'],"4.0.0",true);
+
+    //wp_register_script("app",get_asset_url('js/app.js'),['angularjs'],THEME_VERSION,true);
     wp_register_script("sharethis","//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons");
 
     //WP Enqueue Styles
-    wp_register_style("boostrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",array(),"4.0.0","all");
+    //wp_register_style("boostrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",array(),"4.0.0","all");
+    wp_register_style("boostrap",get_asset_url("css/bootstrap.min.css"),[],"4.0.0","all");
     wp_register_style("theme-main",get_stylesheet_uri(),array("boostrap"),THEME_VERSION,"all");
 });
 

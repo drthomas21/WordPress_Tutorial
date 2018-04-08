@@ -4,6 +4,7 @@ namespace Themes\Superwordpressguide_V3\Conf;
 class AngularBuilder {
     const SCRIPT_PREFIX = "angularjs-";
     const BASE_ANGULARJS_NAME = "angularjs";
+    const EXT_ANGULARJS_PATH = "https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/";
     private static $Instance = null;
     protected $conf = null;
 
@@ -37,16 +38,16 @@ class AngularBuilder {
 
     protected function registerAngularModules() {
         if($this->conf->angularjs->isMin) {
-            \wp_register_script(self::BASE_ANGULARJS_NAME,get_asset_url("js/angular.min.js"),['jquery'],THEME_VERSION,true);
+            \wp_register_script(self::BASE_ANGULARJS_NAME,self::EXT_ANGULARJS_PATH ."angular.min.js",['jquery'],THEME_VERSION,true);
             foreach($this->conf->angularjs->modules as $module) {
-                $assetFile = "js/".strtolower(str_replace("ng","angular-",$module).".min.js");
-                \wp_register_script(self::SCRIPT_PREFIX.$module,get_asset_url($assetFile),[self::BASE_ANGULARJS_NAME],THEME_VERSION,true);
+                $assetFile = strtolower(str_replace("ng","angular-",$module).".min.js");
+                \wp_register_script(self::SCRIPT_PREFIX.$module,self::EXT_ANGULARJS_PATH . $assetFile,[self::BASE_ANGULARJS_NAME],THEME_VERSION,true);
             }
         } else {
-            \wp_register_script(self::BASE_ANGULARJS_NAME,get_asset_url("js/angular.js"),['jquery'],THEME_VERSION,true);
+            \wp_register_script(self::BASE_ANGULARJS_NAME,self::EXT_ANGULARJS_PATH ."angular.js",['jquery'],THEME_VERSION,true);
             foreach($this->conf->angularjs->modules as $module) {
-                $assetFile = "js/".strtolower(str_replace("ng","angular-",$module).".js");
-                \wp_register_script(self::SCRIPT_PREFIX.$module,get_asset_url($assetFile),[self::BASE_ANGULARJS_NAME],THEME_VERSION,true);
+                $assetFile = strtolower(str_replace("ng","angular-",$module).".min.js");
+                \wp_register_script(self::SCRIPT_PREFIX.$module,self::EXT_ANGULARJS_PATH . $assetFile,[self::BASE_ANGULARJS_NAME],THEME_VERSION,true);
             }
         }
     }
