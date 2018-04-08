@@ -1,9 +1,10 @@
 <?php
 ob_start();
-global $realPath, $imagePath, $config, $size;
 require_once __DIR__ .'/vendor/autoload.php';
 use Jcupitt\Vips;
 
+$response = 404;
+$config = json_decode(file_get_contents('config.json'));
 $baseDirectory = $_SERVER['DOCUMENT_ROOT'];
 $imageDirectory = $baseDirectory . '/wp-content/uploads';
 $imagePath = str_replace("/services/image-service","",$_SERVER['REQUEST_URI']);
@@ -103,28 +104,21 @@ if(strlen($imagePath) > 0) {
         if(strlen($imgHeader) > 0) {
             header("Content-Type: {$imgHeader}");
             if($imgHeader == "image/gif") {
+                $response = 200;
                 $Image = new \Imagick($filepath);
 
                 if(!empty($size)) {
                     resizeImage($Image,$size['w'],$size['h'],\Imagick::FILTER_TRIANGLE,1,false,false);
                 }
 
-                if($imgHeader == "image/jpeg") {
-                    $Image->unsharpMaskImage( 0.25, 0.25, 8, 0.065 );
-                    $Image->setOption( 'jpeg:fancy-upsampling', 'off' );
-
-                    compressImage($Image,$config->compression->jpeg);
-                    $Image->setCompression(\Imagick::COMPRESSION_JPEG);
-                    $Image->setCompressionQuality($config->compression->jpeg);
-                } elseif($imgHeader == "image/gif") {
-                    $Image->setOption( 'png:compression-filter', '5' );
-                    $Image->setOption( 'png:compression-level', '9' );
-                    $Image->setOption( 'png:compression-strategy', '1' );
-                    $Image->setOption( 'png:exclude-chunk', 'all' );
-                }
+                $Image->setOption( 'png:compression-filter', '5' );
+                $Image->setOption( 'png:compression-level', '9' );
+                $Image->setOption( 'png:compression-strategy', '1' );
+                $Image->setOption( 'png:exclude-chunk', 'all' );
 
                 echo $Image->getImageBlob();
             } else {
+                $response = 200;
                 $Image = Vips\Image::newFromFile($filepath);
 
                 if(!empty($size)) {
@@ -143,8 +137,6 @@ if(strlen($imagePath) > 0) {
                         $size['h'] = ($size['w'] / $Image->width) * $Image->height;
                     }
 
-                    //error_log(print_r($size,true));
-                    //error_log(print_r([$Image->width,$Image->height],true));
                     $Image = $Image->resize(
                         $size['w'] / $Image->width
                     );
@@ -164,11 +156,6 @@ if(strlen($imagePath) > 0) {
                             ]
                         );
                     }
-
-                    /*$Image->resize($ratio,[
-                        'width' => $size['w'],
-                        'height' => $size['h']
-                    ]);*/
                 }
 
                 $Image = $Image->gaussblur(0.3);
@@ -185,15 +172,11 @@ if(strlen($imagePath) > 0) {
                     echo $Image->webpsave_buffer();
                 }
             }
-
-            header("Content-Length: " . ob_get_length());
-            ob_flush();
-            exit;
         }
     }
 }
 
-http_response_code(404);
+http_response_code($response);
 header("Content-Length: " . ob_get_length());
 ob_flush();
 exit;
