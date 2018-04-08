@@ -1,0 +1,6 @@
+{
+    "assetsDir":"/var/www/sites/www.inhabitat.com/assets/blogs.dir/",
+    "compression": {
+        "jpeg": 60
+    }
+}
