@@ -217,18 +217,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             }
         });
-
-        $scope.getPosts(0,11,function(posts) {
-            if(posts) {
-                if(!$scope.$$phase) {
-                    $scope.$apply(function(){
-                        $scope.latestPosts = posts;
-                    });
-                } else {
-                    $scope.latestPosts = posts;
-                }
-            }
-        });
     }
 
     init();
@@ -244,13 +232,38 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){
                         $scope.opEdPosts = posts;
+                        for(var i in $scope.opEdPosts) {
+                            $scope.opEdPosts[i].post_content = $sce.trustAsHtml($scope.opEdPosts[i].post_content);
+                        }
                     });
                 } else {
                     $scope.opEdPosts = posts;
+                    for(var i in $scope.opEdPosts) {
+                        $scope.opEdPosts[i].post_content = $sce.trustAsHtml($scope.opEdPosts[i].post_content);
+                    }
                 }
             }
         });
 
+        if($scope.latestPosts.length == 0) {
+            $scope.getPosts(0,11,function(posts) {
+                if(posts) {
+                    if(!$scope.$$phase) {
+                        $scope.$apply(function(){
+                            $scope.latestPosts = posts;
+                            for(var i in $scope.latestPosts) {
+                                $scope.latestPosts[i].post_content = $sce.trustAsHtml($scope.latestPosts[i].post_content);
+                            }
+                        });
+                    } else {
+                        $scope.latestPosts = posts;
+                        for(var i in $scope.latestPosts) {
+                            $scope.latestPosts[i].post_content = $sce.trustAsHtml($scope.latestPosts[i].post_content);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     $scope.getYoutubeUrl = function(id) {
@@ -288,9 +301,11 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                         $scope.$apply(function(){
                             $scope.$parent.setPageTitle(Post.post_title);
                             $scope.Post = Post;
+                            $scope.Post.post_content = $sce.trustAsHtml($scope.Post.post_content);
                         });
                     } else {
                         $scope.Post = Post;
+                        $scope.Post.post_content = $sce.trustAsHtml($scope.Post.post_content);
                         $scope.$parent.setPageTitle(Post.post_title);
                     }
                 } else {
