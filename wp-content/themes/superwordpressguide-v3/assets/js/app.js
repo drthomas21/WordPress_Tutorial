@@ -8,15 +8,15 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=search",
         controller: "SearchCtrl"
     })
-    .when("/category/:slug",{
+    .when("/category/:slug/",{
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=category",
         controller: "CategoryCtrl"
     })
-    .when("/tag/:slug",{
+    .when("/tag/:slug/",{
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=tag",
         controller: "TagCtrl"
     })
-    .when("/article/:post_name",{
+    .when("/article/:post_name/",{
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=single",
         controller: "ArticleCtrl"
     })
@@ -25,7 +25,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         controller: "FormCtrl"
     })
 
-    .when("/:post_name",{
+    .when("/:post_name/",{
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=page",
         controller: "PostCtrl"
     })
