@@ -19,7 +19,7 @@ class MemcachedDriver {
         }
 
         if(!empty($this->list)) {
-            $this->conn = new \Memcached(__CLASSNAME__);
+            $this->conn = new \Memcached();
             $this->conn->addServers($this->list);
         }
     }

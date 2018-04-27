@@ -229,7 +229,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     function init() {
         $scope.$parent.setPageTitle("Super WordPress Guide Homepage");
 
-        $scope.$parent.getPostsForCategory(412,0,4,function(posts) {
+        $scope.$parent.getPostsForCategory(412,0,3,function(posts) {
             if(posts) {
                 if(!$scope.$$phase) {
                     $scope.$apply(function(){

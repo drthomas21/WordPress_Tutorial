@@ -3,7 +3,7 @@ Contributors: Ipstenu, mikeschroder, techpriester
 Tags: varnish, purge, cache
 Requires at least: 4.7
 Tested up to: 4.9
-Stable tag: 4.3.1
+Stable tag: 4.4.0
 Requires PHP: 5.6
 
 Automatically empty Varnish Cache when content on your site is modified.
@@ -29,9 +29,12 @@ In addition, your <em>entire</em> cache will be deleted on the following actions
 
 Plugins can hook into the purge actions as well, to filter their own events to trigger a purge.
 
-And if you're into WP-CLI, you can use that too: `wp varnish purge`
-
 On a multisite network using subfolders, only <strong>network admins</strong> can purge the main site. This is a security decision.
+
+= WP CLI = 
+
+* `wp varnish purge` - Flush the entire cache
+* `wp varnish debug` - Help for debugging how well Varnish is (or isn't) working
 
 = Requirements =
 
@@ -44,21 +47,21 @@ On a multisite network using subfolders, only <strong>network admins</strong> ca
 
 If you have code patches, [pull requests are welcome](https://github.com/Ipstenu/varnish-http-purge).
 
-= How can I tell everything's working? =
+= How can I tell if everything's working? =
 
-From your WordPress Dashboard, go to Tools -> Varnish Status. There a page will auto-scan your main plugin page and report back any issues found. This includes any known problematic plugins.
+From your WordPress Dashboard, go to Tools -> Varnish Status. There a page will auto-scan your front page and report back any issues found. This includes any known problematic plugins. You can use it to scan any URL on your domain (but ONLY on your own domain).
 
 = Does every WordPress plugin and theme work with Varnish? =
 
-No. Some of them have behaviour that causes Varnish not to cache. While I can't debug that for you, there is an "Is Varnish Working?" tool (see WP Admin -> Tools -> Varnish Status) that tries to detect most of the common issues and direct you to resolutions.
+No. Some of them have behaviour that causes Varnish not to cache, either by accident or design.
 
 = How can I debug my site? =
 
 Use the Varnish Status page. It will try and help you figure out what's wrong.
 
-= Will you fix my site if there's a conflict with a theme or plugin? =
+= Will you fix my site? =
 
-I'm sorry but I can't do that, I don't have that much availability. I will try to point you towards solving it on your own. Bear in mind, that may mean you have to decide if using a specific plugin or theme is worth an imperfect cache.
+I don't have that much availability. I will try to point you towards solving it on your own. Bear in mind, that may mean you have to decide if using a specific plugin or theme is worth an imperfect cache.
 
 = What version of Varnish is supported? =
 
@@ -66,21 +69,15 @@ This was built and tested on Varnish 3.x. While it is reported to work on 2.x an
 
 = Why doesn't every page cache get deleted when I make a new post? =
 
-Philosophy.
-
-There are many other plugins out there which will allow you to granularly select what pages should and should not be deleted on updates. With that in mind, the choice was made for decisions instead of options, and simplicity was the driving principle. The plugin decides what's best to delete on updates, and provides hooks for developers to use as needed.
+Philosophy. There are many other plugins out there which will allow you to granularly select what pages should and should not be deleted on updates. With that in mind, the choice was made for decisions instead of options, and simplicity was the driving principle. The plugin decides what's best to delete on updates, and provides hooks for developers to use as needed.
 
 = Why doesn't my cache get deleted when I edit my theme? =
 
-If you activate a new theme, or use the customizer to edit your theme, it will delete your cache.
-
-If you edit theme (or plugin) files directly, WordPress cannot easily detect those changes, therefor the plugin will not delete the cache. In that situation, you will need to empty the cache manually.
+WordPress can only flush the cache automatically when you use the internal file editors. If you edit files manually then you will need to empty the cache manually.
 
 = How do I manually delete the whole cache? =
 
-Click the 'Empty Varnish Cache' button on the "Right Now" Dashboard (see the screenshot if you can't find it).
-
-There's also an "Empty Cache" button on the admin toolbar.
+Click the 'Empty Varnish Cache' button on the "Right Now" Dashboard (see the screenshot if you can't find it). There's also an "Empty Cache" button on the admin toolbar, and you can use `wp varnish purge` from the command line.
 
 = I don't see a button! =
 
@@ -151,26 +148,16 @@ Yes! [Full documentation can be found on Custom Filters in the wiki](https://git
 * Yes, I do work for DreamHost.
 * No, this plugin is not really official nor DreamHost Only
 
-This plugin is installed by default for _all_ DreamPress installs on DreamHost, and I maintain it for DreamHost, but it was not originally an official DH plugin which means I will continue to support all users to the best of my ability.
+This plugin is installed by default for _all_ DreamPress installs on DreamHost, and I maintain it for DreamHost, but it was not originally an official DreamHost plugin which means I will continue to support all users to the best of my ability.
 
 == Changelog ==
 
-= 4.3.1 = 
-* 10 October 2017
-* Copied a wrong line.
-
-= 4.3.0 =
-* 10 October 2017
-* Add Varnish Flush for "this" page on front end
-* Do not flush non-public taxonomies
-
-= 4.2.0 =
-* 30 August 2017
-* More flexible support for custom cat/tag bases
-* Added in support for custom taxonomies
-* New function to generate the URLs, so it can be called by external plugins
-* Move right now box to be called later, preventing double calls
-* Extra check for if it's a URL, because some plugins are weird (props @danielkun)
+= 4.4.0 =
+* March 2018
+* Improve translations
+* Massive improvements to the debugging tools
+* Allow for port to be added to host headers (props @davidbarratt)
+* WP-CLI for debugging
 
 == Screenshots ==
 

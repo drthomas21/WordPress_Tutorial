@@ -3,14 +3,14 @@
 Plugin Name: Varnish HTTP Purge
 Plugin URI: https://halfelf.org/plugins/varnish-http-purge/
 Description: Automatically empty pages cached by Varnish when content on your site is modified.
-Version: 4.3.1
+Version: 4.4.0
 Author: Mika Epstein
 Author URI: https://halfelf.org/
 License: http://www.apache.org/licenses/LICENSE-2.0
 Text Domain: varnish-http-purge
 Network: true
 
-	Copyright 2013-2017: Mika A. Epstein (email: ipstenu@halfelf.org)
+	Copyright 2013-2018: Mika A. Epstein (email: ipstenu@halfelf.org)
 
 	Original Author: Leon Weidauer ( http:/www.lnwdr.de/ )
 
@@ -42,6 +42,7 @@ class VarnishPurger {
 	 */
 	public function __construct( ) {
 		defined( 'VHP_VARNISH_IP' ) || define( 'VHP_VARNISH_IP' , false );
+		defined( 'VHP_DEBUG' )      || define( 'VHP_DEBUG', false );
 		add_action( 'init', array( &$this, 'init' ) );
 		add_action( 'admin_init', array( &$this, 'admin_init' ) );
 	}
@@ -57,7 +58,7 @@ class VarnishPurger {
 		// Add to 'right now'
 		add_action( 'activity_box_end', array( $this, 'varnish_rightnow' ), 100 );
 
-		// Failure: Pre WP 4.7		
+		// Failure: Pre WP 4.7
 		if ( version_compare( get_bloginfo( 'version' ), '4.7', '<=' ) ) {
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 			add_action( 'admin_notices' , array( $this, 'require_wp_version_notice'));
@@ -79,6 +80,10 @@ class VarnishPurger {
 	 */
 	public function init() {
 		global $blog_id;
+
+		// Cheap Dev Mode
+		// If VHP_DEBUG is true, throw down a session to 'break' caching
+		if ( VHP_DEBUG ) @session_start();
 
 		// get my events
 		$events = $this->getRegisterEvents();
@@ -108,7 +113,7 @@ class VarnishPurger {
 		if ( 
 			( isset( $_GET['vhp_flush_all'] ) && check_admin_referer( 'vhp-flush-all' ) ) || 
 			( isset( $_GET['vhp_flush_do'] ) && check_admin_referer( 'vhp-flush-do' ) ) ) {
-				add_action( 'admin_notices' , array( $this, 'purgeMessage') );
+				add_action( 'admin_notices', array( $this, 'purgeMessage') );
 		}
 		
 		// Add Admin Bar
@@ -170,7 +175,7 @@ class VarnishPurger {
 		$args = array(
 			array(
 				'id'    => 'purge-varnish-cache',
-				'title' => __( 'Varnish', 'varnish-http-purge' ),
+				'title' => __( 'Empty Cache', 'varnish-http-purge' ),
 			),
 		);
 
@@ -186,10 +191,10 @@ class VarnishPurger {
 			$args[] = array(
 				'parent' => 'purge-varnish-cache',
 				'id'     => 'purge-varnish-cache-all',
-				'title'  => __( 'Empty Cache (All)', 'varnish-http-purge' ),
+				'title'  => __( 'Entire Cache (All Pages)', 'varnish-http-purge' ),
 				'href'   => wp_nonce_url( add_query_arg( 'vhp_flush_do', 'all' ), 'vhp-flush-do' ),
 				'meta'   => array(
-					'title' => __( 'Empty Cache (All)', 'varnish-http-purge' ),
+					'title' => __( 'Entire Cache (All Pages)', 'varnish-http-purge' ),
 				),
 			);
 		}
@@ -202,10 +207,10 @@ class VarnishPurger {
 			$args[] = array(
 				'parent' => 'purge-varnish-cache',
 				'id'     => 'purge-varnish-cache-this',
-				'title'  => __( 'Empty Cache (This Page)', 'varnish-http-purge' ),
+				'title'  => __( 'This Page\'s Cache', 'varnish-http-purge' ),
 				'href'   => wp_nonce_url( add_query_arg( 'vhp_flush_do', $page_url . '/'  ), 'vhp-flush-do' ),
 				'meta'   => array(
-					'title' => __( 'Empty Cache (This Page)', 'varnish-http-purge' ),
+					'title' => __( 'This Page\'s Cache', 'varnish-http-purge' ),
 				),
 			);
 		}
@@ -376,8 +381,20 @@ class VarnishPurger {
 			$host = $p['host'];
 		}
 
+		/*
+		 * Allow setting of ports in host name
+		 * Credit: davidbarratt - https://github.com/Ipstenu/varnish-http-purge/pull/38/
+		 * @since 4.4.0
+		 */
+		$host_headers = $p['host'];
+		if ( isset( $p['port'] ) ) {
+			$host_headers .= ':' . $p['port'];
+		}
+
+		// Create path to purge
 		$purgeme = $schema.$host.$path.$pregex;
 
+		// Check the queries...
 		if ( !empty( $p['query'] ) && $p['query'] != 'vhp-regex' ) {
 			$purgeme .= '?' . $p['query'];
 		}
@@ -387,7 +404,7 @@ class VarnishPurger {
 		 *
 		 * @since 4.1
 		 */
-		$headers  = apply_filters( 'varnish_http_purge_headers', array( 'host' => $p['host'], 'X-Purge-Method' => $x_purge_method ) );
+		$headers  = apply_filters( 'varnish_http_purge_headers', array( 'host' => $host_headers, 'X-Purge-Method' => $x_purge_method ) );
 		$response = wp_remote_request( $purgeme, array( 'method' => 'PURGE', 'headers' => $headers ) );
 
 		do_action( 'after_purge_url', $url, $purgeme, $response, $headers );
@@ -577,7 +594,7 @@ class VarnishPurger {
 					array_push( $listofurls, get_permalink( get_option( 'page_for_posts' ) ) );
 				}
 			}
-			
+
 		} else {
 			// We're not sure how we got here, but bail instead of processing anything else.
 			return;
@@ -592,10 +609,10 @@ class VarnishPurger {
 			}
 		}
 
-        // Filter to add or remove urls to the array of purged urls
-        // @param array $purgeUrls the urls (paths) to be purged
-        // @param int $postId the id of the new/edited post
-        $this->purgeUrls = apply_filters( 'vhp_purge_urls', $this->purgeUrls, $postId );
+		// Filter to add or remove urls to the array of purged urls
+		// @param array $purgeUrls the urls (paths) to be purged
+		// @param int $postId the id of the new/edited post
+		$this->purgeUrls = apply_filters( 'vhp_purge_urls', $this->purgeUrls, $postId );
 	}
 
 }
@@ -615,4 +632,4 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
  * 
  * @since 4.0
  */
-include_once( 'varnish-status.php' );
+include_once( 'status.php' );
