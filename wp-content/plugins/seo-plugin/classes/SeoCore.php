@@ -26,6 +26,9 @@ class SeoCore {
         });
 
         add_action("save_post",function(int $id) {
+            if(!function_exists("tag_exists")) {
+                include_once(ABSPATH.'/wp-admin/includes/taxonomy.php');
+            }
             $post = get_post($id);
             $keywords = get_keywords($post,20);
             $tags = [];

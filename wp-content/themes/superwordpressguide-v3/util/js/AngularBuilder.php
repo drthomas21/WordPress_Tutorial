@@ -1,5 +1,5 @@
 <?php
-namespace Themes\Superwordpressguide_V3\Conf;
+namespace Themes\Superwordpressguide_V3\Util\JS;
 
 class AngularBuilder {
     const SCRIPT_PREFIX = "angularjs-";
@@ -18,9 +18,9 @@ class AngularBuilder {
 
     protected function __construct() {
         if(\isProd()) {
-            $this->conf = json_decode(file_get_contents(__DIR__.'/requirements.json'));
+            $this->conf = json_decode(file_get_contents(THEME_DIRECTORY.'/conf/requirements.json'));
         } else {
-            $this->conf = json_decode(file_get_contents(__DIR__.'/requirements-dev.json'));
+            $this->conf = json_decode(file_get_contents(THEME_DIRECTORY.'/conf/requirements-dev.json'));
         }
 
         if($this->conf) {
@@ -61,14 +61,12 @@ class AngularBuilder {
 
     protected function buildAngularApp() {
         //Run AngularJS init script
+        $appJs = file_get_contents(THEME_DIRECTORY."/assets/js/app.js");
         echo "
         <!-- Start AngularJS Init -->
         <script type='text/javascript'>(function(){
             var app = angular.module('{$this->conf->angularjs->name}',".json_encode($this->conf->angularjs->modules).");
-        ";
-        include get_template_directory()."/assets/js/app.js";
-
-        echo "
+            {$appJs}
         })();</script>
         <!-- End AngularJS Init -->
         ";

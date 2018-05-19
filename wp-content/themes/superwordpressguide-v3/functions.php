@@ -1,6 +1,7 @@
 <?php
+define("THEME_DIRECTORY",__DIR__);
 define("THEME_VERSION","3.0");
-\Themes\Superwordpressguide_V3\Conf\AngularBuilder::getInstance();
+\Themes\Superwordpressguide_V3\Util\JS\AngularBuilder::getInstance();
 \Themes\Superwordpressguide_V3\Util\Ajax\NgTemplateService::getInstance();
 
 function get_asset_url(string $path): string {
