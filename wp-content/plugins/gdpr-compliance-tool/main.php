@@ -2,7 +2,7 @@
 /**
 * Plugin Name: GDPR Compliance Tool
 * Description: tool used to bind the new compliance tool from WP to all users
-* Version: 0.1a
+* Version: 0.2a
 * Author: dathomas
 * Author URI: http://github.com/drthomas21/
 **/
@@ -15,21 +15,26 @@ namespace GDPR_Compliance_Tool {
     }
 
     \add_action("admin_init",function() {
-        //var_dump(function_exists("GDPR_Compliance_Tool\\displayPrivacyRequests")); exit;
         \add_action("show_user_profile",__NAMESPACE__ . "\\displayPrivacyRequests");
         \add_action("edit_user_profile",__NAMESPACE__ . "\\displayPrivacyRequests");
     });
 
     \add_action("wp_ajax_{$AJAX_ACTION}",function() {
-        $User = wp_get_current_user();
         $type = array_key_exists('type',$_POST) ? intval($_POST['type']) : 0;
-        $code = $type == 0 ? 405 : 200;
+        $user_id = array_key_exists('user_id',$_POST) ? intval($_POST['user_id']) : 0;
+        $action_type = "";
+        $code = 200;
         $ret = [
-            "success" => $type != 0,
-            "message" => $type == 0 ? "Invalid Request" : ""
+            "success" => false,
+            "message" => ""
         ];
 
-        $action_type = "";
+        if($user_id > 0) {
+            $User = \get_user_by("id",$user_id);
+        } else {
+            $type = 0;
+        }
+
         if($type == 1) {
             $action_type = "export_personal_data";
         } else if($type == 2){
@@ -46,8 +51,13 @@ namespace GDPR_Compliance_Tool {
                 $ret['message'] = "Successfully created request";
                 $ret['success'] = true;
             }
+        } else {
+            $code = 405;
+            $ret['message'] = "Invalid Request";
+            $ret['success'] = false;
         }
 
+        http_response_code($code);
         wp_send_json($ret);
     });
 }
