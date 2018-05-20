@@ -13,6 +13,7 @@ body {
 
 body > div.container-fluid {
     margin-top: 50px;
+    min-height: calc(100vh - 85px);
 }
 
 .inline-block {
@@ -135,10 +136,35 @@ footer {
     background-color: #f8f9fa
 }
 
+footer ul {
+    margin-bottom: 0;
+}
+
 footer ul li {
     list-style: none;
     display:inline-block;
     padding:5px 15px;
+}
+
+.hide {
+    display: none !important;
+}
+
+.consent-banner {
+    position: fixed;
+    bottom: 0;
+    text-align: center;
+    width: 100%;
+    padding: 30px;
+    background-color: #000;
+    color: #eee;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.consent-banner a {
+    color: #76f3e8;
+    text-decoration: underline;
 }
 
 @media (max-width: 2048px) {

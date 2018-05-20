@@ -537,3 +537,20 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
+.controller("ConsentCtrl",["$scope","$cookies","$timeout",function($scope,$cookies,$timeout) {
+
+    $scope.consentGiven = $cookies.get("consent_given");
+    if(!$scope.consentGiven) {
+        angular.element(".consent-banner").removeClass("hide");
+    }
+
+    $scope.consent = function() {
+        $scope.consentGiven = true,
+        $cookies.put("consent_given",$scope.consentGiven);
+    }
+    if(!$scope.consentGiven) {
+        $timeout(function() {
+            $scope.consent();
+        },60000);
+    }
+}]);
