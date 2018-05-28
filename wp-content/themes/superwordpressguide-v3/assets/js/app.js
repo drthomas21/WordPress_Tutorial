@@ -274,7 +274,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         });
 
         if($scope.latestPosts.length == 0) {
-            $scope.getPosts(0,11,function(posts) {
+            $scope.getPosts(0,10,function(posts) {
                 if(posts) {
                     if(!$scope.$$phase) {
                         $scope.$apply(function(){
