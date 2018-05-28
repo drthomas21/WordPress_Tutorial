@@ -37,6 +37,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     $locationProvider.html5Mode(true);
 }])
 .controller("PageCtrl",["$scope","$rootScope","$http","$timeout","$interval","$location","$route","$sce",function($scope,$rootScope,$http,$timeout,$interval,$route,$sce) {
+    var MAX_LIMIT = 10000;
     $scope.cached = {
         Posts: [],
         Terms: []
@@ -45,6 +46,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     $scope.popularVideos = [];
     $scope.latestPosts = [];
     $scope.pageTitle = "AngularJS App";
+    $scope.hasConsented = false;
 
     $scope.getPosts = function(offset, limit, callback) {
         $http.get("/wp-json/data/v1/posts?offset="+offset+"&limit="+limit)
@@ -61,17 +63,37 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     }
 
     $scope.getVideos = function(offset, limit, callback) {
-        $http.get("/wp-json/data/v1/videos?offset="+offset+"&limit="+limit)
-        .then(function(response){
-            callback(response.data);
-        });
+        var helper = function(num)         {
+            if($scope.hasConsented && num < MAX_LIMIT) {
+                $http.get("/wp-json/data/v1/videos?offset="+offset+"&limit="+limit)
+                .then(function(response){
+                    callback(response.data);
+                });
+            } else if(num < MAX_LIMIT){
+                $timeout(function() {
+                    helper(num+1);
+                },100)
+            }
+        }
+
+        helper(0);
     }
 
     $scope.getPopularVideos = function(offset, limit, callback) {
-        $http.get("/wp-json/data/v1/videos?offset="+offset+"&limit="+limit+"&orderby=popular")
-        .then(function(response){
-            callback(response.data);
-        });
+        var helper = function(num)         {
+            if($scope.hasConsented && num < MAX_LIMIT) {
+                $http.get("/wp-json/data/v1/videos?offset="+offset+"&limit="+limit+"&orderby=popular")
+                .then(function(response){
+                    callback(response.data);
+                });
+            } else if(num < MAX_LIMIT){
+                $timeout(function() {
+                    helper(num+1);
+                },100)
+            }
+        }
+
+        helper(0);
     }
 
     $scope.getPostsForCategory = function(id, offset, limit, callback) {
@@ -193,7 +215,11 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         }
 
         angular.element("html,body").animate({scrollTop: '0px'}, "slow");
-    })
+    });
+
+    $scope.$on("setConsent",function(e,hasConsented) {
+        $scope.hasConsented = hasConsented;
+    });
 
     var init = function() {
         $scope.getVideos(0,10,function(videos) {
@@ -537,20 +563,52 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
 
     init();
 }])
-.controller("ConsentCtrl",["$scope","$cookies","$timeout",function($scope,$cookies,$timeout) {
-
-    $scope.consentGiven = $cookies.get("consent_given");
-    if(!$scope.consentGiven) {
-        angular.element(".consent-banner").removeClass("hide");
-    }
+.controller("ConsentCtrl",["$scope","$cookies","$timeout","$rootScope",function($scope,$cookies,$timeout,$rootScope) {
+    function setGlobalConsent(val) {
+        $rootScope.$broadcast("setConsent",val == 1);
+    };
 
     $scope.consent = function() {
-        $scope.consentGiven = true,
-        $cookies.put("consent_given",$scope.consentGiven);
+        var expireDate = new Date();
+        expireDate.setYear(expireDate.getFullYear() + 10);
+        $scope.consentGiven = 1,
+        $cookies.put("consent_given",$scope.consentGiven,{
+            path    : "/",
+            expires : expireDate,
+            sameSite: "strict"
+        });
+
+        setGlobalConsent($scope.consentGiven);
+    };
+
+    $scope.hide = function() {
+        var expireDate = new Date();
+        expireDate.setYear(expireDate.getFullYear() + 10);
+        $scope.consentGiven = 0,
+        $cookies.put("consent_given",$scope.consentGiven,{
+            path    : "/",
+            expires : expireDate,
+            sameSite: "strict"
+        });
+
+        setGlobalConsent($scope.consentGiven);
+    };
+
+    $scope.confirmHide = function() {
+        angular.element(".confirm-hide").removeClass("hide");
     }
-    if(!$scope.consentGiven) {
-        $timeout(function() {
+
+    $scope.consentGiven = $cookies.get("consent_given");
+    if(typeof $scope.consentGiven != "undefined") {
+        setGlobalConsent($scope.consentGiven);
+    } else {
+        angular.element(".consent-banner").removeClass("hide");
+        setGlobalConsent(false);
+    }
+
+    $timeout(function() {
+        if(typeof $scope.consentGiven == "undefined") {
             $scope.consent();
-        },60000);
-    }
+        }
+    },60000);
 }]);

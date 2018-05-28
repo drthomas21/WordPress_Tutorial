@@ -102,7 +102,6 @@ h2.section-label {
 
 .post {
     margin-bottom: 30px;
-    border-bottom: 1px solid #ccc;
     padding-bottom: 30px;
 }
 
@@ -165,6 +164,16 @@ footer ul li {
 .consent-banner a {
     color: #76f3e8;
     text-decoration: underline;
+}
+
+.confirm-hide {
+    position: fixed;
+    top: 25vh;
+    left: 25%;
+    background-color: rgba(0,0,0,1);
+    height: 50vh;
+    margin: :auto;
+    display: block;
 }
 
 @media (max-width: 2048px) {
