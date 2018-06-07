@@ -8,6 +8,7 @@ class AdminController {
     const ACTION_AUTH = "authorize";
 
     private static $Instance = null;
+    private $Driver = null;
 
     public static function getInstance(): self {
         if(self::$Instance == null){
@@ -24,19 +25,20 @@ class AdminController {
 
         add_action("admin_init",function() {
             if($_GET['action'] == self::ACTION_AUTH && isset($_GET['code'])) {
-                $Driver = $this->getDriver();
-                $Driver->authenticate($_GET['code']);
+                $this->Driver->authenticate($_GET['code']);
                 wp_safe_redirect($this->getPageURL());
                 exit();
             }
         });
-    }
 
-    protected function getDriver(): \Youtube_Vids\Drivers\GoogleApiDriver {
-        $Driver = new \Youtube_Vids\Drivers\GoogleApiDriver();
-        $Driver->setRedirectUri($this->getRedirectURL());
-        $Driver->prepareScopes();
-        return $Driver;
+        try {
+            $this->Driver = new \Youtube_Vids\Drivers\GoogleApiDriver();
+            $this->Driver->setRedirectUri($this->getRedirectURL());
+            $this->Driver->prepareScopes();
+        } catch (\Exception $e) {
+            //Looks like we have some issue creating $this->Driver
+            $this->Driver = null;
+        }
     }
 
     protected function getRedirectURL(): string {
@@ -54,10 +56,15 @@ class AdminController {
     }
 
     protected function display() {
-        $Driver = $this->getDriver();
-        $Driver->refreshAccessToken();
-        $token = $Driver->getAccessToken();
+        $token = [];
 
+        if($this->Driver) {
+            $this->Driver->refreshAccessToken();
+            $token = $this->Driver->getAccessToken();
+        }
+
+        $isValid = $this->Driver && $this->Driver->checkAccessToken();
+        $authUrl = $this->Driver ? $this->Driver->createAuthUrl() : "";
         $accessToken = isset($token['access_token']) ? $token['access_token'] : "";
         $refreshToken = isset($token['refresh_token']) ? $token['refresh_token'] : "";
         $createDate = isset($token['created']) ? date("Y-m-d H:i:s",$token['created'] - (8 * 3600)) : "";

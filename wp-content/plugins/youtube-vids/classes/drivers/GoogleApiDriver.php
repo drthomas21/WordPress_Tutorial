@@ -6,6 +6,10 @@ class GoogleApiDriver {
     private $GoogleClient = null;
 
     public function __construct() {
+        if(!defined('GOOGLE_CLIENT_FILE')) {
+            throw new \RuntimeException("'GOOGLE_CLIENT_FILE' is not defined");
+        }
+        
         //$this->AccountRecord = \Youtube_Vids\Models\AccountModel::getAccountRecord();
         $this->GoogleClient = new \Google_Client();
         $this->GoogleClient->setAuthConfig(GOOGLE_CLIENT_FILE);

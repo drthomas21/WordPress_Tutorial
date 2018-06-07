@@ -20,7 +20,7 @@ class YoutubeEndpoint implements BaseRestfulEndpoint {
 
         $limit = intval($Request->get_param('limit'));
         $offset = intval($Request->get_param('offset'));
-        
+
         if($limit <= 0) {
             $limit = 10;
         }
@@ -31,8 +31,8 @@ class YoutubeEndpoint implements BaseRestfulEndpoint {
         $Items = [];
 
         if($orderby == "popular") {
-            if(function_exists("list_popular_videos")) {
-                $Videos = \list_popular_videos($offset,$limit);
+            if(function_exists("get_popular_videos")) {
+                $Videos = \get_popular_videos($offset,$limit);
                 if(!empty($Videos)) {
                     foreach($Videos as $Vid) {
                         $Item = new \stdClass();
@@ -42,8 +42,8 @@ class YoutubeEndpoint implements BaseRestfulEndpoint {
                 }
             }
         } else {
-            if(function_exists("list_recent_videos")) {
-                $Videos = \list_recent_videos($offset,$limit);
+            if(function_exists("get_recent_videos")) {
+                $Videos = \get_recent_videos($offset,$limit);
                 if(!empty($Videos)) {
                     foreach($Videos as $Vid) {
                         $Item = new \stdClass();
