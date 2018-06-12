@@ -7,6 +7,9 @@ class AdminController {
 
     const ACTION_AUTH = "authorize";
 
+    const WP_AJAX = "youtube-vids";
+    const WP_AJAX_FILTER = "youtube-vids-filter";
+
     private static $Instance = null;
     private $Driver = null;
 
@@ -29,6 +32,64 @@ class AdminController {
                 wp_safe_redirect($this->getPageURL());
                 exit();
             }
+        });
+
+        add_action("wp_ajax_".self::WP_AJAX,function() {
+            $type = array_key_exists("type",$_GET) ? $_GET['type'] : '';
+            $offset = array_key_exists("offset",$_GET) ? intval($_GET['offset']) : 0;
+            $limit = array_key_exists("limit",$_GET) ? intval($_GET['limit']) : 10;
+
+            $temp = [];
+
+            //var_dump($offset,$limit); exit;
+            switch($type) {
+                case 'popular':
+                    $temp = get_popular_videos($offset,$limit);
+                    break;
+                case 'recent':
+                    $temp = get_recent_videos($offset,$limit);
+                    break;
+            }
+
+            $videos = [];
+            foreach($temp as $item) {
+                $videos[] = [
+                    "id" => $item->id,
+                    "description" => $item->Snippet->description,
+                    "published" => date("U",strtotime($item->Snippet->publishedAd)),
+                    "title" => $item->Snippet->title,
+                    "thumbnails" => $item->Snippet->thumbnails
+                ];
+            }
+
+            wp_send_json(['videos' => $videos]);
+        });
+
+        add_action("wp_ajax_".self::WP_AJAX_FILTER,function() {
+            $Controller = new PageController();
+            if($_SERVER['REQUEST_METHOD'] == "POST") {
+                $fp = fopen("php://input","r");
+                $raw = "";
+                while($fp && !feof($fp)) $raw .= fgets($fp);
+                fclose($fp);
+
+                $Data = json_decode($raw);
+                if($Data && $Data->id && $Data->type) {
+                    switch($Data->type) {
+                        case 'recent':
+                            $Controller->toggledRecentVideo($Data->id);
+                            break;
+                        case 'popular':
+                        $Controller->toggledPopularVideo($Data->id);
+                            break;
+                    }
+                }
+            }
+
+
+            $filters = $Controller->getFlaggedIds();
+
+            wp_send_json(['filters' => $filters]);
         });
 
         try {
@@ -65,10 +126,6 @@ class AdminController {
 
         $isValid = $this->Driver && $this->Driver->checkAccessToken();
         $authUrl = $this->Driver ? $this->Driver->createAuthUrl() : "";
-        $accessToken = isset($token['access_token']) ? $token['access_token'] : "";
-        $refreshToken = isset($token['refresh_token']) ? $token['refresh_token'] : "";
-        $createDate = isset($token['created']) ? date("Y-m-d H:i:s",$token['created'] - (8 * 3600)) : "";
-        $expireDate = isset($token['created']) && $token['expires_in'] ? date("Y-m-d H:i:s",$token['created'] + $token['expires_in'] - (8 * 3600)) : "";
 
         include YOUTUBE_VIDS_DIR.'/templates/index.php';
     }

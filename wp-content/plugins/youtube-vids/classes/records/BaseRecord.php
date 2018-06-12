@@ -6,7 +6,7 @@ abstract class BaseRecord {
     protected $props = [];
 
     //Only allow read access to properties in $props
-    public function __get($name): string {
+    public function __get($name) {
 
         if(array_key_exists($name,$this->props)) {
             $prop = $this->props[$name];

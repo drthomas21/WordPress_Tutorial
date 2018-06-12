@@ -18,16 +18,41 @@ class YoutubeService {
     private function search(array $args,int $offset = 0, int $limit = 10): \Google_Service_YouTube_SearchListResponse  {
         $args['maxResults'] = $offset + $limit;
         $args['type'] = 'video';
-        $resp = array();
-        try {
-            $resp = $this->Service->search->listSearch('id,snippet', $args);
-        } catch(\Exception $e) {
-            error_log($e->getMessage());
+        $resp = [];
+
+        if($args['maxResults'] <= 50) {
+            try {
+                $resp = $this->Service->search->listSearch('id,snippet', $args);
+            } catch(\Exception $e) {
+                error_log($e->getMessage());
+            }
+
+            if(!is_a($resp,"Google_Service_YouTube_SearchListResponse")) {
+                throw new \Exception("Invalid object");
+            }
+        } else {
+            $args['maxResults'] = 50;
+            $iter = ceil(($offset + $limit) / $args['maxResults']) ;
+            try {
+                $i = 0;
+                $resp = null;
+                while($i < $iter) {
+                    if($resp != null) {
+                        $args['nextPageToken'] = $resp->nextPageToken;
+                    }
+
+                    $resp = $this->Service->search->listSearch('id,snippet', $args);
+                    $i++;
+                }
+            } catch(\Exception $e) {
+                error_log($e->getMessage());
+            }
+
+            if(!is_a($resp,"Google_Service_YouTube_SearchListResponse")) {
+                throw new \Exception("Invalid object");
+            }
         }
 
-        if(!is_a($resp,"Google_Service_YouTube_SearchListResponse")) {
-            throw new \Exception("Invalid object");
-        }
 
         return $resp;
     }
@@ -50,8 +75,7 @@ class YoutubeService {
             //Do nothing;
         }
 
-
-        return $list;
+        return array_slice($list,$offset,$limit);
     }
 
     public function getNewestVideos(int $offset = 0, int $limit = 10): array {
@@ -72,6 +96,6 @@ class YoutubeService {
             //Do nothing;
         }
 
-        return $list;
+        return array_slice($list,$offset,$limit);
     }
 }
