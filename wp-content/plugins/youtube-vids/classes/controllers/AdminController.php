@@ -35,6 +35,7 @@ class AdminController {
         });
 
         add_action("wp_ajax_".self::WP_AJAX,function() {
+            $Controller = new PageController();
             $type = array_key_exists("type",$_GET) ? $_GET['type'] : '';
             $offset = array_key_exists("offset",$_GET) ? intval($_GET['offset']) : 0;
             $limit = array_key_exists("limit",$_GET) ? intval($_GET['limit']) : 10;
@@ -44,10 +45,10 @@ class AdminController {
             //var_dump($offset,$limit); exit;
             switch($type) {
                 case 'popular':
-                    $temp = get_popular_videos($offset,$limit);
+                    $temp = $Controller->getPopularVideos($offset,$limit);
                     break;
                 case 'recent':
-                    $temp = get_recent_videos($offset,$limit);
+                    $temp = $Controller->getRecentVideos($offset,$limit);
                     break;
             }
 

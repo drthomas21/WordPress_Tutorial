@@ -22,11 +22,6 @@ class PageController {
 
     public function getPopularVideos(int $offset = 0, int $limit = 10): array {
         $videos = $this->Service->getPopularVideos($offset,$limit);
-        $flaggedIds = $this->flaggedIds[self::LABEL_POPULAR];
-        if(!is_array($flaggedIds)) $flaggedIds = [];
-        $videos = array_filter($videos,function($Item) use($flaggedIds) {
-            return !in_array($Item->id,$flaggedIds);
-        });
         return $videos;
     }
 
@@ -48,11 +43,6 @@ class PageController {
 
     public function getRecentVideos(int $offset = 0, int $limit = 10): array {
         $videos = $this->Service->getNewestVideos($offset,$limit);
-        $flaggedIds = $this->flaggedIds[self::LABEL_RECENT];
-        if(!is_array($flaggedIds)) $flaggedIds = [];
-        $videos = array_filter($videos,function($Item) use($flaggedIds) {
-            return !in_array($Item->id,$flaggedIds);
-        });
         return $videos;
     }
 
@@ -73,6 +63,6 @@ class PageController {
     }
 
     public function getFlaggedIds(): array {
-        return $this->flaggedIds;
+        return apply_filters("youtube_vids_flagged_ids",$this->flaggedIds);
     }
 }
