@@ -1,6 +1,6 @@
 <?php
 /**
-* Defining globally available plugins
+* Defining globally available functions
 **/
 
 function get_popular_videos(int $offset = 0, int $limit = 10): array {
