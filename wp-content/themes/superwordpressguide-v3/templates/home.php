@@ -1,4 +1,4 @@
-<section class="homepage blog-header row">
+<section class="homepage blog-header">
     <div class="main-content row">
         <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 main-content-1" ng-show="hasConsented">
             <div class="youtube-vids">
