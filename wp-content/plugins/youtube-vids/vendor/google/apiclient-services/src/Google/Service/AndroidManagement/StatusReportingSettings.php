@@ -17,6 +17,8 @@
 
 class Google_Service_AndroidManagement_StatusReportingSettings extends Google_Model
 {
+  public $applicationReportsEnabled;
+  public $deviceSettingsEnabled;
   public $displayInfoEnabled;
   public $hardwareStatusEnabled;
   public $memoryInfoEnabled;
@@ -24,6 +26,22 @@ class Google_Service_AndroidManagement_StatusReportingSettings extends Google_Mo
   public $powerManagementEventsEnabled;
   public $softwareInfoEnabled;
 
+  public function setApplicationReportsEnabled($applicationReportsEnabled)
+  {
+    $this->applicationReportsEnabled = $applicationReportsEnabled;
+  }
+  public function getApplicationReportsEnabled()
+  {
+    return $this->applicationReportsEnabled;
+  }
+  public function setDeviceSettingsEnabled($deviceSettingsEnabled)
+  {
+    $this->deviceSettingsEnabled = $deviceSettingsEnabled;
+  }
+  public function getDeviceSettingsEnabled()
+  {
+    return $this->deviceSettingsEnabled;
+  }
   public function setDisplayInfoEnabled($displayInfoEnabled)
   {
     $this->displayInfoEnabled = $displayInfoEnabled;

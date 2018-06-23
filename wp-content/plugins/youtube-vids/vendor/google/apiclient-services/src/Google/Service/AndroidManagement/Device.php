@@ -19,9 +19,13 @@ class Google_Service_AndroidManagement_Device extends Google_Collection
 {
   protected $collection_key = 'previousDeviceNames';
   public $apiLevel;
+  protected $applicationReportsType = 'Google_Service_AndroidManagement_ApplicationReport';
+  protected $applicationReportsDataType = 'array';
   public $appliedPolicyName;
   public $appliedPolicyVersion;
   public $appliedState;
+  protected $deviceSettingsType = 'Google_Service_AndroidManagement_DeviceSettings';
+  protected $deviceSettingsDataType = '';
   protected $disabledReasonType = 'Google_Service_AndroidManagement_UserFacingMessage';
   protected $disabledReasonDataType = '';
   protected $displaysType = 'Google_Service_AndroidManagement_Display';
@@ -63,6 +67,20 @@ class Google_Service_AndroidManagement_Device extends Google_Collection
   {
     return $this->apiLevel;
   }
+  /**
+   * @param Google_Service_AndroidManagement_ApplicationReport
+   */
+  public function setApplicationReports($applicationReports)
+  {
+    $this->applicationReports = $applicationReports;
+  }
+  /**
+   * @return Google_Service_AndroidManagement_ApplicationReport
+   */
+  public function getApplicationReports()
+  {
+    return $this->applicationReports;
+  }
   public function setAppliedPolicyName($appliedPolicyName)
   {
     $this->appliedPolicyName = $appliedPolicyName;
@@ -86,6 +104,20 @@ class Google_Service_AndroidManagement_Device extends Google_Collection
   public function getAppliedState()
   {
     return $this->appliedState;
+  }
+  /**
+   * @param Google_Service_AndroidManagement_DeviceSettings
+   */
+  public function setDeviceSettings(Google_Service_AndroidManagement_DeviceSettings $deviceSettings)
+  {
+    $this->deviceSettings = $deviceSettings;
+  }
+  /**
+   * @return Google_Service_AndroidManagement_DeviceSettings
+   */
+  public function getDeviceSettings()
+  {
+    return $this->deviceSettings;
   }
   /**
    * @param Google_Service_AndroidManagement_UserFacingMessage
