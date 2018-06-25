@@ -72,7 +72,7 @@ class WPContactDriver {
             $this->actionAjaxCallback();
         });
 
-        add_action("wp_ajax_nopriv".self::ACTION_SEND_MAIL,function() {
+        add_action("wp_ajax_nopriv_".self::ACTION_SEND_MAIL,function() {
             $this->actionAjaxCallback();
         });
 
