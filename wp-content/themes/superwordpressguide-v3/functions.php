@@ -113,3 +113,17 @@ add_filter("the_content",function(string $content){
 
     return $content;
 });
+
+add_filter("posts_pre_query",function($posts, WP_Query $Query) {
+    if($Query->is_main_query() && $Query->is_home() && !is_admin()) {
+        add_filter("pre_handle_404",function($bool, WP_Query $Query) {
+            $bool = true;
+            return $bool;
+        },10,2);
+
+        $posts = [];
+        return $posts;
+    }
+
+    return $posts;
+},10,2);
