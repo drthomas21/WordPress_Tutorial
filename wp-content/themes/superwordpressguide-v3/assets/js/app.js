@@ -184,7 +184,13 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         $http.get("/wp-json/data/v1/twitter/")
         .then(function(response) {
             if(response.data) {
-                $scope.tweets = response.data;
+                if(!$scope.$$phase) {
+                    $scope.$apply(function() {
+                        $scope.tweets = response.data;
+                    });
+                } else {
+                    $scope.tweets = response.data;
+                }
             }
         })
     }

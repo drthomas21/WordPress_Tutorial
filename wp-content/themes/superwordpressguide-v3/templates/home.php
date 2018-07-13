@@ -108,7 +108,7 @@
 
 
         <section class="hide-sm row" ng-show="hasConsented">
-            <div class="col-sm-4 videos">
+            <div class="col-md-6 col-lg-4 videos">
                 <div class="youtube-vids">
                     <h2 class="text-center section-label col-sm-12">Newest Videos</h2>
                     <div class="embed-responsive embed-responsive-16by9" ng-repeat="Video in latestVideos | limitTo: 2">
@@ -117,7 +117,7 @@
                 </div>
             </div>
 
-            <div class="col-sm-4 posts">
+            <div class="col-md-6 col-lg-4 posts">
                 <h2 class="text-center section-label col-sm-12">Recent Posts</h2>
                 <div class="post" ng-repeat="Post in latestPosts | limitTo:1">
                     <div class="post-header row">
@@ -141,7 +141,7 @@
                 </div>
             </div>
 
-            <div class="col-sm-4 tweets">
+            <div class="col-md-12 col-lg-4 tweets">
                 <h2 class="text-center section-label col-sm-12">Tech Tweets</h2>
                 <div class="col-sm-12 tweet" ng-repeat="Tweet in tweets | limitTo:4">
                     <section class="row">

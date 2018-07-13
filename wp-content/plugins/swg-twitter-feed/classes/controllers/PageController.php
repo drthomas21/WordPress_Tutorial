@@ -35,7 +35,7 @@ class PageController {
             error_log(print_r($json,true));
         }
 
-        wp_cache_set("search_tweets_".md5($query),$Tweets,TWITTER_FEED_CACHE_GROUP,3600);
+        wp_cache_set("search_tweets_".md5($query),$Tweets,TWITTER_FEED_CACHE_GROUP,30);
         return $Tweets;
     }
 }

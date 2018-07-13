@@ -222,7 +222,7 @@ footer ul li {
     }
 }
 
-@media (max-width: 991px) and (min-width: 767px) {
+@media (max-width: 1199px) and (min-width: 767px) {
     .hide-md {
         display:none !important;
     }
