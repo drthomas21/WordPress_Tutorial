@@ -45,6 +45,7 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     $scope.latestVideos = [];
     $scope.popularVideos = [];
     $scope.latestPosts = [];
+    $scope.tweets = [];
     $scope.pageTitle = "AngularJS App";
     $scope.hasConsented = false;
 
@@ -179,6 +180,15 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         });
     }
 
+    $scope.getTweets = function() {
+        $http.get("/wp-json/data/v1/twitter/")
+        .then(function(response) {
+            if(response.data) {
+                $scope.tweets = response.data;
+            }
+        })
+    }
+
     $scope.setPageTitle = function(title) {
         $scope.pageTitle = title;
     }
@@ -245,6 +255,8 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
                 }
             }
         });
+
+        $scope.getTweets();
     }
 
     init();

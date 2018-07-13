@@ -124,6 +124,10 @@ a, .navbar-light .navbar-brand {
     margin-bottom: 20px;
 }
 
+.tweets .tweet {
+    margin-bottom: 10px;
+}
+
 .sharethis-inline-share-buttons {
     margin-bottom:20px;
 }
@@ -194,9 +198,9 @@ footer ul li {
     }
 }
 
-@media (max-width: 1199px) {
+@media (min-width: 1200px) {
     .hide-lg {
-        display:none;
+        display:none !important;
     }
 }
 
@@ -207,10 +211,6 @@ footer ul li {
 }
 
 @media (max-width: 991px) {
-    .hide-md {
-        display:none;
-    }
-
     .homepage .post-date,
     .fourohfour .post-date,
     .archive .post-date,
@@ -221,13 +221,15 @@ footer ul li {
     }
 }
 
+@media (max-width: 991px) and (min-width: 767px) {
+    .hide-md {
+        display:none !important;
+    }
+}
+
 @media (max-width: 767px) {
     .homepage.blog-header {
         background-image: url(assets/img/blog-header-tablet.jpg);
-    }
-
-    .hide-sm {
-        display:none;
     }
 
     .homepage .post-date,
@@ -241,8 +243,8 @@ footer ul li {
 }
 
 
-@media (max-width: 575px) {
-    .hide-xs {
+@media (max-width: 767px) {
+    .hide-sm {
         display:none;
     }
 }
