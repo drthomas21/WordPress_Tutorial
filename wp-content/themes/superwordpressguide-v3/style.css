@@ -21,8 +21,9 @@ body > div.container-fluid {
 }
 
 section.single section.post p img {
-    width: 100%;
+    width: auto;
     height: auto;
+    max-height: 50vh;
 }
 
 h2.section-label {
