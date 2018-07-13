@@ -1,7 +1,7 @@
 <?php
 /**
-* Plugin Name: SEO Plugin
-* Author: dathomas
+* Plugin Name: SWG SEO Plugin
+* Author: niiiiisama
 * Version: 0.3
 * Description: This is a simple SEO plugin to add meta 'description' and 'keywords'
 **/

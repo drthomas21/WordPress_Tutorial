@@ -1,6 +1,6 @@
 <?php
 /**
-* Plugin Name: Twitter Feed
+* Plugin Name: SWG Twitter Feed
 * Plugin URI: https://github.com/drthomas21/WordPress_Tutorial/tree/master/wp-content/plugins/twitter-feed
 * Description: Create your own twitter feed
 * Author: niiiiisama

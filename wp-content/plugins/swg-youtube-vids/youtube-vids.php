@@ -1,6 +1,6 @@
 <?php
 /**
-* Plugin Name: Youtube Profile Vids
+* Plugin Name: SWG Youtube Profile Vids
 * Plugin URI: https://github.com/drthomas21/WordPress_Tutorial/tree/master/wp-content/plugins/youtube-vids
 * Description: Plaster your Youtube videos all over your site
 * Author: niiiiisama

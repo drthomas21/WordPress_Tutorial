@@ -1,8 +1,8 @@
 <?php
 /**
-* Plugin Name: GDPR Compliance Tool
+* Plugin Name: SWG GDPR Compliance Tool
 * Description: tool used to bind the new compliance tool from WP to all users
-* Version: 0.2a
+* Version: 0.3
 * Author: dathomas
 * Author URI: http://github.com/drthomas21/
 **/
@@ -43,6 +43,7 @@ namespace GDPR_Compliance_Tool {
 
         if(strlen($action_type) > 0) {
             $request_id = wp_create_user_request( $User->data->user_email, $action_type );
+            wp_send_user_request($request_id);
 
             if(is_wp_error($request_id)) {
                 $ret['message'] = $request_id->get_error_message();
