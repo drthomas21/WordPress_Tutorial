@@ -15,7 +15,7 @@ class TwitterEndpoint implements BaseRestfulEndpoint {
         $list = [];
         if(class_exists("\\Twitter_Feed\\Controllers\\PageController")) {
             $Controller = new \Twitter_Feed\Controllers\PageController();
-            $list = $Controller->searchTweets("tech");
+            $list = $Controller->searchTweets("#tech OR #apple OR #google OR #microsoft OR #toshiba OR #asus OR #gaming OR #steam OR #gamer");
 
             array_walk($list, function($Item) {
                 $Now = new \DateTime();

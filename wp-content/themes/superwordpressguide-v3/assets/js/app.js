@@ -256,7 +256,10 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             }
         });
 
-        $scope.getTweets();
+        $interval(function() {
+            $scope.getTweets();
+        },30000);
+
     }
 
     init();
