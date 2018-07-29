@@ -24,7 +24,6 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=page-contact",
         controller: "FormCtrl"
     })
-
     .when("/:post_name/",{
         templateUrl: "/wp-admin/admin-ajax.php?action=ngTemplate&name=page",
         controller: "PostCtrl"
@@ -199,6 +198,13 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
         $scope.pageTitle = title;
     }
 
+    $scope.$on("$locationChangeStart",function(e,newUrl,oldUrl) {
+        if(newUrl.match(/\/wp\-admin\/?/)) {
+            window.location.href = newUrl;
+            return false;
+        }
+    });
+
     $scope.$on("$routeChangeStart",function(e,next,current) {
         var search = $route.search();
         if(search.preview == "true" && !$route.absUrl().match(/\/preview\/\?/)) {
@@ -222,6 +228,9 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
             }
             $route.url("/search/?"+params.join("&"));
             return false;
+        }
+        else if(true) {
+
         }
     });
 
