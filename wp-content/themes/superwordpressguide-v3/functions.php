@@ -79,7 +79,7 @@ add_action("wp",function() {
     wp_register_script("popper",get_asset_url("js/popper.min.js"),['jquery'],"1.12.3",true);
     //wp_register_script("bootstrap","https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js",array("jquery","popper"),"4.0.0",true);
     wp_register_script("bootstrap",get_asset_url("js/bootstrap.min.js"),['jquery','popper'],"4.0.0",true);
-    wp_register_script("jquery-cookie",get_asset_url("js/juqery.cookie.min.js"),["jquery"],false);
+    wp_register_script("jquery-cookie",get_asset_url("js/jquery.cookie.min.js"),["jquery"],false);
 
     //wp_register_script("app",get_asset_url('js/app.js'),['angularjs'],THEME_VERSION,true);
     wp_register_script("sharethis","//platform-api.sharethis.com/js/sharethis.js#property=5a19bd0f1d108f0012ed9d85&product=inline-share-buttons");
