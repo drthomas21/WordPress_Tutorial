@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="WordPress Guide" default="WordPress Guide" basedir="." description="Script to relink the WP Core">
+    <target name="WordPress Guide" depends="RuntimeGen"></target>
+    <target name="RuntimeGen">
+        <httpget url="https://wordpress.org/wordpress-${tag}.zip" dir="/var/www/sites/WordPress_Tutorial/wp-core/"/>
+        <unzip file="/var/www/sites/WordPress_Tutorial/wp-core/wordpress-${tag}.zip" todir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}" forceExtract="true" />
+        <copy todir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}">
+            <fileset dir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wordpress">
+                <include name="**" />
+            </fileset>
+        </copy>
+        <delete dir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wordpress" includeemptydirs="true" />
+        <delete dir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wp-content" includeemptydirs="true" />
+        <delete file="/var/www/sites/WordPress_Tutorial/wp-core/wordpress-${tag}.zip" />
+        <!--symlink target="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wordpress/wp-admin" link="/var/www/sites/WordPress_Tutorial/wp-admin" overwrite="true" />
+        <symlink target="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wordpress/wp-includes" link="/var/www/sites/WordPress_Tutorial/htdocs/wp-includes" overwrite="true" /-->
+        <symlink target="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wp-admin" link="/var/www/sites/WordPress_Tutorial/htdocs/wp-admin" overwrite="true"/>
+        <symlink target="/var/www/sites/WordPress_Tutorial/wp-core/${tag}/wp-includes" link="/var/www/sites/WordPress_Tutorial/htdocs/wp-includes" overwrite="true"/>
+        <foreach param="filename" absparam="absfilename" target="UpdateSymlinks">
+            <fileset dir="/var/www/sites/WordPress_Tutorial/wp-core/${tag}">
+                <include name="*.php" />
+                <include name="*.txt" />
+                <include name="*.html" />
+                <exclude name="wp-admin/" />
+                <exclude name="wp-includes/" />
+            </fileset>
+        </foreach>
+    </target>
+    <target name="UpdateSymlinks">
+        <symlink target="${absfilename}" link="/var/www/sites/WordPress_Tutorial/htdocs/${filename}" overwrite="true"/>
+    </target>
+</project>
