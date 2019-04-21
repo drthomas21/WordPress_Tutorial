@@ -1,5 +1,4 @@
 <?php
-
 /**
  *  Author extention
  *
@@ -69,10 +68,17 @@ function schema_wp_get_author_array( $post_id = null ) {
 		$author['description'] = strip_tags( get_the_author_meta( 'description', $post_author->ID ) );
 	}
 	
-	if ( schema_wp_validate_gravatar($email) ) {
+	if ( schema_wp_validate_gravatar( $email ) ) {
 		// Default = 96px, since it is a squre image, width = height
-		$image_size	= apply_filters( 'schema_wp_get_author_array_img_size', 96); 
-		$image_url	= get_avatar_url( $email, $image_size );
+		$image_size	= apply_filters( 'schema_wp_get_author_array_img_size', 96 ); 
+		
+		// Get an array of args
+		// @since 1.7.2
+		$args = array(
+						'size' => $image_size,
+					);
+		
+		$image_url	= get_avatar_url( $email, $args );
 
 		if ( $image_url ) {
 			$author['image'] = array (
@@ -99,6 +105,11 @@ function schema_wp_get_author_array( $post_id = null ) {
 	$tumblr 	= esc_attr( stripslashes( get_the_author_meta( 'tumblr', $post_author->ID ) ) );
 	$github 	= esc_attr( stripslashes( get_the_author_meta( 'github', $post_author->ID ) ) );
 	
+	// Add full URL	to Twitter
+	// @since 1.7.3
+	// @since 1.7.4
+	if ( isset($twitter) && $twitter != '' ) $twitter = 'https://twitter.com/' . $twitter;
+	
 	$sameAs_links = array( $website, $googleplus, $facebook, $twitter, $instagram, $youtube, $linkedin, $myspace, $pinterest, $soundcloud, $tumblr, $github);
 	
 	$social = array();
@@ -115,7 +126,6 @@ function schema_wp_get_author_array( $post_id = null ) {
 	return apply_filters( 'schema_wp_author', $author );
 }
 
-
 /**
  * Validate gravatar by email or id
  *
@@ -130,7 +140,7 @@ function schema_wp_get_author_array( $post_id = null ) {
 function schema_wp_validate_gravatar( $email ) {
 
 	$hashkey 	= md5(strtolower(trim($email)));
-	$uri 		= 'http://www.gravatar.com/avatar/' . $hashkey . '?d=404';
+	$uri 		= 'http://www.gravatar.com/avatar/' . $hashkey;
 	$data 		= get_transient($hashkey);
 	
 	if (false === $data) {

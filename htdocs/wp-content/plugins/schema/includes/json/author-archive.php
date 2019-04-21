@@ -1,6 +1,6 @@
 <?php
 /**
- * Author
+ * Author Archive
  *
  * @since 1.4.5
  */

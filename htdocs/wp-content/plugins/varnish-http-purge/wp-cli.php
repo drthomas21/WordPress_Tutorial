@@ -1,19 +1,7 @@
 <?php
 /**
-	WP-CLI code
-
-	@package varnish-http-purge
-
-	Copyright 2015-2018 Mika Epstein (email: ipstenu@halfelf.org)
-
-	This file is part of Varnish HTTP Purge, a plugin for WordPress.
-
-	Varnish HTTP Purge is free software: you can redistribute it and/or modify
-	it under the terms of the Apache License 2.0 license.
-
-	Varnish HTTP Purge is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * WP-CLI code
+ * @package varnish-http-purge
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -57,16 +45,20 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 		}
 
 		/**
-		 * Forces a full Varnish Purge of the entire site (provided
-		 * regex is supported). Alternately you can fluxh the cache
-		 * for specific pages or folders (using the --wildcard param)
+		 * Forces cache to purge.
+		 *
+		 * ## OPTIONS
+		 *
+		 * [<url>]
+		 * : Specify a URL
+		 *
+		 * [--wildcard]
+		 * : Include include all subfolders and files.
 		 *
 		 * ## EXAMPLES
 		 *
 		 *      wp varnish purge
-		 *
 		 *      wp varnish purge http://example.com/wp-content/themes/twentyeleventy/style.css
-		 *
 		 *      wp varnish purge http://example.com/wp-content/themes/ --wildcard
 		 */
 		public function purge( $args, $assoc_args ) {
@@ -115,10 +107,10 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 			if ( WP_DEBUG === true ) {
 				// translators: %1$s is the URL being flushed.
 				// translators: %2$s are the params being flushed.
-				WP_CLI::log( sprintf( __( 'Varnish HTTP Purge is flushing the URL %1$s with params %2$s.', 'varnish-http-purge' ), $url, $pregex ) );
+				WP_CLI::log( sprintf( __( 'Proxy Cache Purge is flushing the URL %1$s with params %2$s.', 'varnish-http-purge' ), $url, $pregex ) );
 			}
 
-			WP_CLI::success( __( 'Varnish HTTP Purge has flushed your cache.', 'varnish-http-purge' ) );
+			WP_CLI::success( __( 'Proxy Cache Purge has flushed your cache.', 'varnish-http-purge' ) );
 		}
 
 		/**
@@ -151,23 +143,22 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 				// No params, echo state.
 				$state = ( $devmode['active'] ) ? __( 'activated', 'varnish-http-purge' ) : __( 'deactivated', 'varnish-http-purge' );
 				// translators: %s is the state of dev mode.
-				WP_CLI::log( sprintf( __( 'Varnish HTTP Purge development mode is currently %s.', 'varnish-http-purge' ), $state ) );
+				WP_CLI::log( sprintf( __( 'Proxy Cache Purge development mode is currently %s.', 'varnish-http-purge' ), $state ) );
 			} elseif ( ! in_array( $args[0], $valid_modes, true ) ) {
 				// Invalid Params, warn.
 				// translators: %s is the bad command.
-				WP_CLI::error( sprintf( __( '%s is not a valid subcommand for varnish development mode.', 'varnish-http-purge' ), sanitize_text_field( $args[0] ) ) );
+				WP_CLI::error( sprintf( __( '%s is not a valid subcommand for development mode.', 'varnish-http-purge' ), sanitize_text_field( $args[0] ) ) );
 			} else {
 				// Run the toggle!
 				$result = VarnishDebug::devmode_toggle( sanitize_text_field( $args[0] ) );
 				$state  = ( $result ) ? __( 'activated', 'varnish-http-purge' ) : __( 'deactivated', 'varnish-http-purge' );
 				// translators: %s is the state of dev mode.
-				WP_CLI::success( sprintf( __( 'Varnish HTTP Purge development mode has been %s.', 'varnish-http-purge' ), $state ) );
+				WP_CLI::success( sprintf( __( 'Proxy Cache Purge development mode has been %s.', 'varnish-http-purge' ), $state ) );
 			}
 		} // End devmode.
 
 		/**
-		 * Runs a debug check of the site to see if there are any known
-		 * issues that would stop Varnish from caching.
+		 * Runs a debug check of the site to see if there are any known issues.
 		 *
 		 * ## OPTIONS
 		 *
@@ -229,11 +220,15 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 				$paths = array_unique( $paths );
 				foreach ( $paths as $path ) {
 					$cmd = sprintf(
-						"grep -RE '%s' %s",
+						// Greps for matches and removes ABSPATH from filepath.
+						"grep --include=*.php -RE '%s' %s | cut -d '/' -f %d-",
 						$pattern,
-						escapeshellarg( $path )
+						escapeshellarg( $path ),
+						substr_count( ABSPATH, '/' ) + 1
 					);
-					passthru( $cmd );
+					// @codingStandardsIgnoreStart
+					system( $cmd );
+					// @codingStandardsIgnoreEnd
 				}
 				WP_CLI::log( '' );
 				WP_CLI::log( __( 'Grep complete. If no data was output, you\'re good!', 'varnish-http-purge' ) );
@@ -265,7 +260,12 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 
 			// Get the response and headers.
 			$remote_get = VarnishDebug::remote_get( $varnishurl );
-			$headers    = wp_remote_retrieve_headers( $remote_get );
+
+			if ( is_wp_error( $remote_get ) || 'fail' === $remote_get ) {
+				WP_CLI::error( __( 'Unable to retrieve data. Debug cannot be run at this time. Please run "curl -I [URL]" manually on your personal computer.', 'varnish-http-purge' ) );
+			}
+
+			$headers = wp_remote_retrieve_headers( $remote_get );
 
 			if ( WP_CLI\Utils\get_flag_value( $assoc_args, 'include-headers' ) ) {
 				WP_CLI::log( 'Headers:' );
@@ -283,7 +283,7 @@ if ( ! class_exists( 'WP_CLI_Varnish_Command' ) ) {
 			// Check for Remote IP.
 			$remote_ip = VarnishDebug::remote_ip( $headers );
 
-			// Get the Varnish IP.
+			// Get the IP.
 			if ( false !== VHP_VARNISH_IP ) {
 				$varniship = VHP_VARNISH_IP;
 			} else {
