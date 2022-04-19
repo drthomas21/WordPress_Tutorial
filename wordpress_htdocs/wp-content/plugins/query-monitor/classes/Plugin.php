@@ -8,14 +8,21 @@
 if ( ! class_exists( 'QM_Plugin' ) ) {
 abstract class QM_Plugin {
 
+	/**
+	 * @var array<string, string>
+	 */
 	private $plugin = array();
-	public static $minimum_php_version = '5.3.6';
+
+	/**
+	 * @var string
+	 */
+	public $file = '';
 
 	/**
 	 * Class constructor
 	 *
-	 * @author John Blackbourn
-	 **/
+	 * @param string $file
+	 */
 	protected function __construct( $file ) {
 		$this->file = $file;
 	}
@@ -23,10 +30,9 @@ abstract class QM_Plugin {
 	/**
 	 * Returns the URL for for a file/dir within this plugin.
 	 *
-	 * @param $file string The path within this plugin, e.g. '/js/clever-fx.js'
+	 * @param string $file The path within this plugin, e.g. '/js/clever-fx.js'
 	 * @return string URL
-	 * @author John Blackbourn
-	 **/
+	 */
 	final public function plugin_url( $file = '' ) {
 		return $this->_plugin( 'url', $file );
 	}
@@ -34,10 +40,9 @@ abstract class QM_Plugin {
 	/**
 	 * Returns the filesystem path for a file/dir within this plugin.
 	 *
-	 * @param $file string The path within this plugin, e.g. '/js/clever-fx.js'
+	 * @param string $file The path within this plugin, e.g. '/js/clever-fx.js'
 	 * @return string Filesystem path
-	 * @author John Blackbourn
-	 **/
+	 */
 	final public function plugin_path( $file = '' ) {
 		return $this->_plugin( 'path', $file );
 	}
@@ -45,20 +50,24 @@ abstract class QM_Plugin {
 	/**
 	 * Returns a version number for the given plugin file.
 	 *
-	 * @param $file string The path within this plugin, e.g. '/js/clever-fx.js'
+	 * @param string $file The path within this plugin, e.g. '/js/clever-fx.js'
 	 * @return string Version
-	 * @author John Blackbourn
-	 **/
+	 */
 	final public function plugin_ver( $file ) {
-		return filemtime( $this->plugin_path( $file ) );
+		$path = $this->plugin_path( $file );
+
+		if ( file_exists( $path ) ) {
+			return (string) filemtime( $path );
+		}
+
+		return QM_VERSION;
 	}
 
 	/**
 	 * Returns the current plugin's basename, eg. 'my_plugin/my_plugin.php'.
 	 *
 	 * @return string Basename
-	 * @author John Blackbourn
-	 **/
+	 */
 	final public function plugin_base() {
 		return $this->_plugin( 'base' );
 	}
@@ -66,9 +75,11 @@ abstract class QM_Plugin {
 	/**
 	 * Populates and returns the current plugin info.
 	 *
-	 * @author John Blackbourn
-	 **/
-	final private function _plugin( $item, $file = '' ) {
+	 * @param string $item
+	 * @param string $file
+	 * @return string
+	 */
+	private function _plugin( $item, $file = '' ) {
 		if ( ! array_key_exists( $item, $this->plugin ) ) {
 			switch ( $item ) {
 				case 'url':
@@ -84,16 +95,5 @@ abstract class QM_Plugin {
 		}
 		return $this->plugin[ $item ] . ltrim( $file, '/' );
 	}
-
-	public static function php_version_met() {
-		static $met = null;
-
-		if ( null === $met ) {
-			$met = version_compare( PHP_VERSION, self::$minimum_php_version, '>=' );
-		}
-
-		return $met;
-	}
-
 }
 }

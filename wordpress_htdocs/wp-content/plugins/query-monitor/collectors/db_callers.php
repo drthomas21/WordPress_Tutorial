@@ -5,14 +5,17 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Collector_DB_Callers extends QM_Collector {
 
 	public $id = 'db_callers';
 
-	public function name() {
-		return __( 'Queries by Caller', 'query-monitor' );
-	}
-
+	/**
+	 * @return void
+	 */
 	public function process() {
 		$dbq = QM_Collectors::get( 'db_queries' );
 
@@ -30,6 +33,11 @@ class QM_Collector_DB_Callers extends QM_Collector {
 
 }
 
+/**
+ * @param array<string, QM_Collector> $collectors
+ * @param QueryMonitor $qm
+ * @return array<string, QM_Collector>
+ */
 function register_qm_collector_db_callers( array $collectors, QueryMonitor $qm ) {
 	$collectors['db_callers'] = new QM_Collector_DB_Callers();
 	return $collectors;

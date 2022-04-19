@@ -187,26 +187,27 @@ function schema_wp_register_settings() {
 					'schema_wp_settings_' . $tab . '_' . $section,
 					'schema_wp_settings_' . $tab . '_' . $section,
 					array(
-						'section'       => $section,
-						'id'            => isset( $option['id'] )            ? $option['id']            : null,
-						'class'         => isset( $option['class'] )         ? $option['class']         : null,
-						'class_field'   => isset( $option['class_field'] )   ? $option['class_field']   : null,
-						'desc'          => ! empty( $option['desc'] )        ? $option['desc']          : '',
-						'name'          => isset( $option['name'] )          ? $option['name']          : null,
-						'size'          => isset( $option['size'] )          ? $option['size']          : null,
-						'options'       => isset( $option['options'] )       ? $option['options']       : '',
-						'std'           => isset( $option['std'] )           ? $option['std']           : '',
-						'min'           => isset( $option['min'] )           ? $option['min']           : null,
-						'max'           => isset( $option['max'] )           ? $option['max']           : null,
-						'step'          => isset( $option['step'] )          ? $option['step']          : null,
-						'chosen'        => isset( $option['chosen'] )        ? $option['chosen']        : null,
-						'placeholder'   => isset( $option['placeholder'] )   ? $option['placeholder']   : null,
-						'allow_blank'   => isset( $option['allow_blank'] )   ? $option['allow_blank']   : true,
-						'readonly'      => isset( $option['readonly'] )      ? $option['readonly']      : false,
-						'faux'          => isset( $option['faux'] )          ? $option['faux']          : false,
-						'tooltip_title' => isset( $option['tooltip_title'] ) ? $option['tooltip_title'] : false,
-						'tooltip_desc'  => isset( $option['tooltip_desc'] )  ? $option['tooltip_desc']  : false,
-						'post_type'		=> isset( $option['post_type'] )  	 ? $option['post_type']  	: false,
+						'section'       	=> $section,
+						'id'            	=> isset( $option['id'] )            	? $option['id']            		: null,
+						'class'         	=> isset( $option['class'] )         	? $option['class']         		: null,
+						'class_field'   	=> isset( $option['class_field'] )  	? $option['class_field']   		: null,
+						'desc'          	=> ! empty( $option['desc'] )        	? $option['desc']          		: '',
+						'name'          	=> isset( $option['name'] )          	? $option['name']          		: null,
+						'size'          	=> isset( $option['size'] )          	? $option['size']          		: null,
+						'options'       	=> isset( $option['options'] )       	? $option['options']       		: '',
+						'std'           	=> isset( $option['std'] )           	? $option['std']           		: '',
+						'min'           	=> isset( $option['min'] )           	? $option['min']           		: null,
+						'max'           	=> isset( $option['max'] )           	? $option['max']           		: null,
+						'step'          	=> isset( $option['step'] )          	? $option['step']         		: null,
+						'chosen'        	=> isset( $option['chosen'] )        	? $option['chosen']        		: null,
+						'placeholder'   	=> isset( $option['placeholder'] )   	? $option['placeholder']   		: null,
+						'allow_blank'   	=> isset( $option['allow_blank'] )   	? $option['allow_blank']   		: true,
+						'readonly'      	=> isset( $option['readonly'] )      	? $option['readonly']      		: false,
+						'premium_feature'   => isset( $option['premium_feature'] )	? $option['premium_feature']   	: false,
+						'faux'          	=> isset( $option['faux'] )          	? $option['faux']          		: false,
+						'tooltip_title' 	=> isset( $option['tooltip_title'] ) 	? $option['tooltip_title'] 		: false,
+						'tooltip_desc'  	=> isset( $option['tooltip_desc'] )  	? $option['tooltip_desc']  		: false,
+						'post_type'			=> isset( $option['post_type'] )  	 	? $option['post_type']  		: false,
 					)
 				);
 			}
@@ -483,52 +484,65 @@ function schema_wp_get_registered_settings() {
 			)
 		),
 			
-		/** Content Settings */
+	
+		/** Schemas Settings */
 		'schemas' => apply_filters( 'schema_wp_settings_schemas',
 			array(
-				'about_page' => array(
-					'id' => 'about_page',
-					'name' => __( 'About Page', 'schema-wp' ),
-					'desc' => __( '', 'schema-wp' ),
-					'type' => 'post_select',
-					'post_type' => 'page'
-				),
-				'contact_page' => array(
-					'id' => 'contact_page',
-					'name' => __( 'Contact Page', 'schema-wp' ),
-					'desc' => __( '', 'schema-wp' ),
-					'type' => 'post_select',
-					'post_type' => 'page'
-				),
-				'web_page_element' => array(
-					'id' => 'web_page_element_enable',
-					'name' => __( 'WPHeader and WPFooter', 'schema-wp' ),
-					'desc' => __( 'enable?', 'schema-wp' ),
-					'type' => 'checkbox'
+				'general' => array(
+					'web_page_element' => array(
+						'id' => 'web_page_element_enable',
+						'name' => __( 'WPHeader and WPFooter', 'schema-wp' ),
+						'desc' => __( 'enable?', 'schema-wp' ),
+						'type' => 'checkbox'
+					),
+					'comments' => array(
+						'id' => 'comments_enable',
+						'name' => __( 'Comments', 'schema-premium' ),
+						'desc' => __( 'enable?', 'schema-premium' ),
+						'type' => 'checkbox'
+					)
 				),
 				'breadcrumbs' => array(
-					'id' => 'breadcrumbs_enable',
-					'name' => __( 'Breadcrumbs', 'schema-wp' ),
-					'desc' => __( 'enable?', 'schema-wp' ),
-					'type' => 'checkbox'
+					'breadcrumbs' => array(
+						'id' => 'breadcrumbs_enable',
+						'name' => __( 'Breadcrumbs', 'schema-premium' ),
+						'desc' => __( 'enable?', 'schema-premium' ),
+						'type' => 'checkbox'
+					)
 				),
-				'comments' => array(
-					'id' => 'comments_enable',
-					'name' => __( 'Comments', 'schema-wp' ),
-					'desc' => __( 'enable?', 'schema-wp' ),
-					'type' => 'checkbox'
+				'special_pages' => array(
+					'about_page' => array(
+						'id' => 'about_page',
+						'name' => __( 'About Page', 'schema-premium' ),
+						'desc' => __( '', 'schema-premium' ),
+						'type' => 'post_select',
+						'post_type' => 'page'
+					),
+					'contact_page' => array(
+						'id' => 'contact_page',
+						'name' => __( 'Contact Page', 'schema-premium' ),
+						'desc' => __( '', 'schema-premium' ),
+						'type' => 'post_select',
+						'post_type' => 'page'
+					)
 				),
-				'video' => array(
-					'id' => 'video_object_enable',
-					'name' => __( 'VideoObject', 'schema-wp' ),
-					'desc' => __( 'enable?', 'schema-wp' ),
-					'type' => 'checkbox'
-				),
-				'audio' => array(
-					'id' => 'audio_object_enable',
-					'name' => __( 'AudioObject', 'schema-wp' ),
-					'desc' => __( 'enable?', 'schema-wp' ),
-					'type' => 'checkbox'
+				'embeds' => array(
+					'video' => array(
+						'id' => 'video_object_enable',
+						'name' => __( 'VideoObject', 'schema-premium' ),
+						'desc' => __( 'enable?', 'schema-premium' ),
+						'type' => 'checkbox',
+						'tooltip_title' => __('When enabled', 'schema-premium'),
+						'tooltip_desc' => __('Schema plugin will fetch video data automatically from embedded video. (configure it under Schema > Types)', 'schema-premium'),
+					),
+					'audio' => array(
+						'id' => 'audio_object_enable',
+						'name' => __( 'AudioObject', 'schema-premium' ),
+						'desc' => __( 'enable?', 'schema-premium' ),
+						'type' => 'checkbox',
+						'tooltip_title' => __('When enabled', 'schema-premium'),
+						'tooltip_desc' => __('Schema plugin will fetch audio data automatically from embedded audio. (configure it under Schema > Types)', 'schema-premium'),
+					)
 				)
 			)
 		),
@@ -547,13 +561,14 @@ function schema_wp_get_registered_settings() {
 				'main' => array(
 					'uninstall_on_delete' => array(
 						'id'   => 'uninstall_on_delete',
-						'name' => __( 'Delete Data on Uninstall?', 'schema-wp' ),
-						'desc' => __( 'Check this box if you would like Schema to completely remove all of its data when uninstalling via Plugins > Delete.', 'schema-wp' ),
+						'name' => __( 'Delete Data on Uninstall?', 'schema-premium' ),
+						'desc' => __( 'Check this box if you would like Schema to completely remove all of its data when uninstalling via Plugins > Delete.', 'schema-premium' ),
 						'type' => 'checkbox'
 					)
 				)
 			)
 		)
+		
 	);
 		
 	return apply_filters( 'schema_wp_registered_settings', $schema_wp_settings );
@@ -806,7 +821,10 @@ function schema_wp_get_registered_settings_sections() {
 			'main'		=> '',
 		) ),
 		'schemas'    => apply_filters( 'schema_wp_settings_sections_schemas', array(
-			'main'		=> '',
+			'general'		=> __( 'General', 'schema-premium' ),
+			'breadcrumbs'	=> __( 'Breadcrumbs', 'schema-premium' ),
+			'special_pages' => __( 'Special Pages', 'schema-premium' ),
+			'embeds' 		=> __( 'Embeds', 'schema-premium' ),
 		) ),
 		'knowledge_graph'	=> apply_filters( 'schema_wp_settings_sections_knowledge_graph', array(
 			'organization'			=> __( 'Organization Info', 'wp-schema' ),
@@ -895,9 +913,13 @@ function schema_wp_checkbox_callback( $args ) {
 	}
 	
 	$checked  = ! empty( $schema_wp_option ) ? checked( 1, $schema_wp_option, false ) : '';
+	$readonly = $args['readonly'] === true ? ' readonly="readonly"' : '';
+	$disabled = (!empty($readonly)) ? ' disabled="true"' : '';
+	$premium  = $args['premium_feature'] === true ? schema_wp_admin_get_premium_notice() : '';
+	
 	$html     = '<input type="hidden"' . $name . ' value="-1" />';
-	$html    .= '<input ' . $class_field . 'type="checkbox" id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"' . $name . ' value="1" ' . $checked . '/>';
-	$html    .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> '  . wp_kses_post( $args['desc'] ) . '</label>';
+	$html    .= '<input ' . $class_field . 'type="checkbox" id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"' . $name . ' value="1" ' . $checked . $readonly . $disabled.'/>';
+	$html    .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> '  . wp_kses_post( $args['desc'] ) . '</label>' . $premium;
 
 	echo apply_filters( 'schema_wp_after_setting_output', $html, $args );
 }
@@ -1002,9 +1024,10 @@ function schema_wp_text_callback( $args ) {
 	}
 
 	$readonly = $args['readonly'] === true ? ' readonly="readonly"' : '';
+	$premium  = $args['premium_feature'] === true ? schema_wp_admin_get_premium_notice() : '';
 	$size     = ( isset( $args['size'] ) && ! is_null( $args['size'] ) ) ? $args['size'] : 'regular';
 	$html     = '<input type="text" class="' . $class_field . sanitize_html_class( $size ) . '-text" id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" ' . $name . ' value="' . esc_attr( stripslashes( $value ) ) . '" placeholder="' . $args['placeholder'] . '" ' . $readonly . '/>';
-	$html    .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> '  . wp_kses_post( $args['desc'] ) . '</label>';
+	$html    .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> '  . wp_kses_post( $args['desc'] ) . '</label>' . $premium;
 
 	echo apply_filters( 'schema_wp_after_setting_output', $html, $args );
 }
@@ -1162,8 +1185,12 @@ function schema_wp_select_callback($args) {
 	} else {
 		$class_field = '';
 	}
-
-	$html = '<select ' . $class_field .' id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" name="schema_wp_settings[' . esc_attr( $args['id'] ) . ']" ' . $chosen . 'data-placeholder="' . esc_html( $placeholder ) . '" />';
+	
+	$readonly = $args['readonly'] === true ? ' readonly="readonly"' : '';
+	$disabled = (!empty($readonly)) ? ' disabled="true"' : '';
+	$premium = $args['premium_feature'] === true ? schema_wp_admin_get_premium_notice() : '';
+	
+	$html = '<select ' . $class_field .' id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" name="schema_wp_settings[' . esc_attr( $args['id'] ) . ']" ' . $chosen . 'data-placeholder="' . esc_html( $placeholder ) . '"'.$readonly.$disabled.' />';
 
 	foreach ( $args['options'] as $option => $name ) {
 		$selected = selected( $option, $value, false );
@@ -1171,7 +1198,7 @@ function schema_wp_select_callback($args) {
 	}
 
 	$html .= '</select>';
-	$html .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> ' . wp_kses_post( $args['desc'] ) . '</label>';
+	$html .= '<label for="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']"> ' . wp_kses_post( $args['desc'] ) . '</label>' . $premium;
 
 	echo apply_filters( 'schema_wp_after_setting_output', $html, $args );
 }
@@ -1194,7 +1221,7 @@ function schema_wp_color_select_callback( $args ) {
 	} else {
 		$value = isset( $args['std'] ) ? $args['std'] : '';
 	}
-
+	
 	$html = '<select id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" name="schema_wp_settings[' . esc_attr( $args['id'] ) . ']"/>';
 
 	foreach ( $args['options'] as $option => $color ) {
@@ -1296,9 +1323,13 @@ function schema_wp_image_upload_callback( $args ) {
 	else
 		$value = isset( $args['std'] ) ? $args['std'] : '';
 
+	$readonly = $args['readonly'] === true ? ' readonly="readonly"' : '';
+	$disabled = (!empty($readonly)) ? ' disabled="true"' : '';
+	$premium  = $args['premium_feature'] === true ? schema_wp_admin_get_premium_notice() : '';
+	
 	$size = ( isset( $args['size'] ) && ! is_null( $args['size'] ) ) ? $args['size'] : 'regular';
-	$html = '<input type="text" class="' . $class_field . sanitize_html_class( $size ) . '-text" id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" name="schema_wp_settings[' . esc_attr( $args['id'] ) . ']" value="' . esc_attr( stripslashes( $value ) ) . '"/>';
-	$html .= '<span>&nbsp;<input type="button" class="schema_wp_settings_upload_button button-secondary" value="' . __( 'Upload File', 'wp-schema' ) . '"/></span>';
+	$html = '<input type="text" class="' . $class_field . sanitize_html_class( $size ) . '-text" id="schema_wp_settings[' . schema_wp_sanitize_key( $args['id'] ) . ']" name="schema_wp_settings[' . esc_attr( $args['id'] ) . ']" value="' . esc_attr( stripslashes( $value ) ) . '"'.$readonly.'/>';
+	$html .= '<span>&nbsp;<input type="button" class="schema_wp_settings_upload_button button-secondary" ' .$disabled . ' value="' . __( 'Upload File', 'wp-schema' ) . '"/></span>' . $premium;
 	
 	$html .= '<p>'  . wp_kses_post( $args['desc'] ) . '</p>';
 		
@@ -1585,7 +1616,7 @@ function schema_wp_hook_callback( $args ) {
 	do_action( 'schema_wp_' . $args['id'], $args );
 }
 
-add_filter( 'schema_wp_after_setting_name', 'schema_wp_add_setting_tooltip', 10, 2 );
+add_filter( 'option_page_capability_schema_wp_settings', 'schema_wp_set_settings_cap' );
 /**
  * Set manage_schema_options as the cap required to save Schema settings pages
  *
@@ -1595,8 +1626,14 @@ add_filter( 'schema_wp_after_setting_name', 'schema_wp_add_setting_tooltip', 10,
 function schema_wp_set_settings_cap() {
 	return 'manage_schema_options';
 }
-add_filter( 'option_page_capability_schema_wp_settings', 'schema_wp_set_settings_cap' );
 
+add_filter( 'schema_wp_after_setting_name', 'schema_wp_add_setting_tooltip', 10, 2 );
+/**
+ * Add Tooltip to settings fields
+ *
+ * @since 1.0
+ * @return string capability required
+ */
 function schema_wp_add_setting_tooltip( $html, $args ) {
 
 	if ( ! empty( $args['tooltip_title'] ) && ! empty( $args['tooltip_desc'] ) ) {
@@ -1605,6 +1642,17 @@ function schema_wp_add_setting_tooltip( $html, $args ) {
 	}
 
 	return $html;
+}
+
+/**
+ * Return premium feature notice
+ *
+ * @since 1.7.8
+ *
+ * @return string
+ */
+function schema_wp_admin_get_premium_notice() {
+	return ' <span style="color:green">(' . __('Premium Feature') . ')</span>';
 }
 
 add_action( 'admin_print_footer_scripts', 'schema_wp_admin_footer_scripts' );

@@ -5,14 +5,17 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Collector_Request extends QM_Collector {
 
 	public $id = 'request';
 
-	public function name() {
-		return __( 'Request', 'query-monitor' );
-	}
-
+	/**
+	 * @return array<int, string>
+	 */
 	public function get_concerned_actions() {
 		return array(
 			# Rewrites
@@ -23,11 +26,15 @@ class QM_Collector_Request extends QM_Collector {
 			'parse_request',
 			'parse_tax_query',
 			'pre_get_posts',
+			'send_headers',
 			'the_post',
 			'wp',
 		);
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	public function get_concerned_filters() {
 		global $wp_rewrite;
 
@@ -44,6 +51,34 @@ class QM_Collector_Request extends QM_Collector {
 			'search_rewrite_rules',
 			'tag_rewrite_rules',
 
+			# Home URL
+			'home_url',
+
+			# Post permalinks
+			'_get_page_link',
+			'attachment_link',
+			'page_link',
+			'post_link',
+			'post_type_link',
+			'pre_post_link',
+			'preview_post_link',
+			'the_permalink',
+
+			# Post type archive permalinks
+			'post_type_archive_link',
+
+			# Term permalinks
+			'category_link',
+			'pre_term_link',
+			'tag_link',
+			'term_link',
+
+			# User permalinks
+			'author_link',
+
+			# Comment permalinks
+			'get_comment_link',
+
 			# More rewrite stuff
 			'iis7_url_rewrite_rules',
 			'mod_rewrite_rules',
@@ -57,6 +92,7 @@ class QM_Collector_Request extends QM_Collector {
 			'query_vars',
 			'redirect_canonical',
 			'request',
+			'wp_headers',
 		);
 
 		foreach ( $wp_rewrite->extra_permastructs as $permastructname => $struct ) {
@@ -69,6 +105,9 @@ class QM_Collector_Request extends QM_Collector {
 		return $filters;
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	public function get_concerned_options() {
 		return array(
 			'home',
@@ -78,6 +117,9 @@ class QM_Collector_Request extends QM_Collector {
 		);
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	public function get_concerned_constants() {
 		return array(
 			'WP_HOME',
@@ -85,11 +127,14 @@ class QM_Collector_Request extends QM_Collector {
 		);
 	}
 
+	/**
+	 * @return void
+	 */
 	public function process() {
 
 		global $wp, $wp_query, $current_blog, $current_site, $wp_rewrite;
 
-		$qo   = get_queried_object();
+		$qo = get_queried_object();
 		$user = wp_get_current_user();
 
 		if ( $user->exists() ) {
@@ -105,7 +150,7 @@ class QM_Collector_Request extends QM_Collector {
 
 		$this->data['user'] = array(
 			'title' => $user_title,
-			'data'  => ( $user->exists() ? $user : false ),
+			'data' => ( $user->exists() ? $user : false ),
 		);
 
 		if ( is_multisite() ) {
@@ -115,7 +160,7 @@ class QM_Collector_Request extends QM_Collector {
 					__( 'Current Site: #%d', 'query-monitor' ),
 					$current_blog->blog_id
 				),
-				'data'  => $current_blog,
+				'data' => $current_blog,
 			);
 		}
 
@@ -126,14 +171,15 @@ class QM_Collector_Request extends QM_Collector {
 					__( 'Current Network: #%d', 'query-monitor' ),
 					$current_site->id
 				),
-				'data'  => $current_site,
+				'data' => $current_site,
 			);
 		}
 
 		if ( is_admin() ) {
 			if ( isset( $_SERVER['REQUEST_URI'] ) ) {
-				$home_path = trim( parse_url( home_url(), PHP_URL_PATH ), '/' );
-				$request   = wp_unslash( $_SERVER['REQUEST_URI'] ); // @codingStandardsIgnoreLine
+				$path = parse_url( home_url(), PHP_URL_PATH );
+				$home_path = trim( $path ? $path : '', '/' );
+				$request = wp_unslash( $_SERVER['REQUEST_URI'] ); // phpcs:ignore
 
 				$this->data['request']['request'] = str_replace( "/{$home_path}/", '', $request );
 			} else {
@@ -150,8 +196,8 @@ class QM_Collector_Request extends QM_Collector {
 
 		/** This filter is documented in wp-includes/class-wp.php */
 		$plugin_qvars = array_flip( apply_filters( 'query_vars', array() ) );
-		$qvars        = $wp_query->query_vars;
-		$query_vars   = array();
+		$qvars = $wp_query->query_vars;
+		$query_vars = array();
 
 		foreach ( $qvars as $k => $v ) {
 			if ( isset( $plugin_qvars[ $k ] ) ) {
@@ -170,7 +216,7 @@ class QM_Collector_Request extends QM_Collector {
 		# First add plugin vars to $this->data['qvars']:
 		foreach ( $query_vars as $k => $v ) {
 			if ( isset( $plugin_qvars[ $k ] ) ) {
-				$this->data['qvars'][ $k ]        = $v;
+				$this->data['qvars'][ $k ] = $v;
 				$this->data['plugin_qvars'][ $k ] = $v;
 			}
 		}
@@ -239,7 +285,7 @@ class QM_Collector_Request extends QM_Collector {
 		}
 
 		if ( isset( $_SERVER['REQUEST_METHOD'] ) ) {
-			$this->data['request_method'] = strtoupper( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ); // @codingStandardsIgnoreLine
+			$this->data['request_method'] = strtoupper( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ); // phpcs:ignore
 		} else {
 			$this->data['request_method'] = '';
 		}
@@ -261,6 +307,11 @@ class QM_Collector_Request extends QM_Collector {
 
 }
 
+/**
+ * @param array<string, QM_Collector> $collectors
+ * @param QueryMonitor $qm
+ * @return array<string, QM_Collector>
+ */
 function register_qm_collector_request( array $collectors, QueryMonitor $qm ) {
 	$collectors['request'] = new QM_Collector_Request();
 	return $collectors;

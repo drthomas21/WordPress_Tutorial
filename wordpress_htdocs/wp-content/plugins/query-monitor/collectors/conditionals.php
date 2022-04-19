@@ -5,14 +5,17 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Collector_Conditionals extends QM_Collector {
 
 	public $id = 'conditionals';
 
-	public function name() {
-		return __( 'Conditionals', 'query-monitor' );
-	}
-
+	/**
+	 * @return void
+	 */
 	public function process() {
 
 		/**
@@ -35,6 +38,7 @@ class QM_Collector_Conditionals extends QM_Collector {
 			'is_date',
 			'is_day',
 			'is_embed',
+			'is_favicon',
 			'is_feed',
 			'is_front_page',
 			'is_home',
@@ -47,6 +51,7 @@ class QM_Collector_Conditionals extends QM_Collector {
 			'is_paged',
 			'is_post_type_archive',
 			'is_preview',
+			'is_privacy_policy',
 			'is_robots',
 			'is_rtl',
 			'is_search',
@@ -71,9 +76,9 @@ class QM_Collector_Conditionals extends QM_Collector {
 		 */
 		$conds = apply_filters( 'query_monitor_conditionals', $conds );
 
-		$true  = array();
+		$true = array();
 		$false = array();
-		$na    = array();
+		$na = array();
 
 		foreach ( $conds as $cond ) {
 			if ( function_exists( $cond ) ) {
@@ -101,6 +106,11 @@ class QM_Collector_Conditionals extends QM_Collector {
 
 }
 
+/**
+ * @param array<string, QM_Collector> $collectors
+ * @param QueryMonitor $qm
+ * @return array<string, QM_Collector>
+ */
 function register_qm_collector_conditionals( array $collectors, QueryMonitor $qm ) {
 	$collectors['conditionals'] = new QM_Collector_Conditionals();
 	return $collectors;

@@ -5,13 +5,34 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Output_Html_Environment extends QM_Output_Html {
+
+	/**
+	 * Collector instance.
+	 *
+	 * @var QM_Collector_Environment Collector.
+	 */
+	protected $collector;
 
 	public function __construct( QM_Collector $collector ) {
 		parent::__construct( $collector );
 		add_filter( 'qm/output/menus', array( $this, 'admin_menu' ), 110 );
 	}
 
+	/**
+	 * @return string
+	 */
+	public function name() {
+		return __( 'Environment', 'query-monitor' );
+	}
+
+	/**
+	 * @return void
+	 */
 	public function output() {
 
 		$data = $this->collector->get_data();
@@ -24,17 +45,17 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 		echo '<table>';
 		echo '<tbody>';
 
-		$append      = '';
-		$class       = '';
+		$append = '';
+		$class = '';
 		$php_warning = $data['php']['old'];
 
 		if ( $php_warning ) {
 			$append .= sprintf(
 				'&nbsp;<span class="qm-info">(<a href="%s" target="_blank" class="qm-external-link">%s</a>)</span>',
-				'https://wordpress.org/support/upgrade-php/',
+				'https://wordpress.org/support/update-php/',
 				esc_html__( 'Help', 'query-monitor' )
 			);
-			$class   = 'qm-warn';
+			$class = 'qm-warn';
 		}
 
 		echo '<tr class="' . esc_attr( $class ) . '">';
@@ -65,7 +86,7 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 		echo '</tr>';
 
 		foreach ( $data['php']['variables'] as $key => $val ) {
-			$class   = '';
+			$class = '';
 			$warners = array(
 				'max_execution_time',
 				'memory_limit',
@@ -114,7 +135,7 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 
 		echo '<tr>';
 		echo '<th scope="row">' . esc_html__( 'Error Reporting', 'query-monitor' ) . '</th>';
-		echo '<td class="qm-has-toggle qm-ltr"><div class="qm-toggler">';
+		echo '<td class="qm-has-toggle qm-ltr">';
 
 		echo esc_html( $data['php']['error_reporting'] );
 		echo self::build_toggler(); // WPCS: XSS ok;
@@ -123,13 +144,13 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 		echo "<ul class='qm-supplemental'><li>{$error_levels}</li></ul>"; // WPCS: XSS ok.
 		echo '</div>';
 
-		echo '</div></td>';
+		echo '</td>';
 		echo '</tr>';
 
 		if ( ! empty( $data['php']['extensions'] ) ) {
 			echo '<tr>';
 			echo '<th scope="row">' . esc_html__( 'Extensions', 'query-monitor' ) . '</th>';
-			echo '<td class="qm-has-inner qm-has-toggle qm-ltr"><div class="qm-toggler">';
+			echo '<td class="qm-has-inner qm-has-toggle qm-ltr">';
 
 			printf( // WPCS: XSS ok.
 				'<div class="qm-inner-toggle">%1$s %2$s</div>',
@@ -141,7 +162,7 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 			self::output_inner( $data['php']['extensions'] );
 			echo '</div>';
 
-			echo '</div></td>';
+			echo '</td>';
 			echo '</tr>';
 		}
 
@@ -168,13 +189,12 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 				echo '<tbody>';
 
 				$info = array(
-					'rdbms'          => __( 'RDBMS', 'query-monitor' ),
 					'server-version' => __( 'Server Version', 'query-monitor' ),
-					'extension'      => __( 'Extension', 'query-monitor' ),
+					'extension' => __( 'Extension', 'query-monitor' ),
 					'client-version' => __( 'Client Version', 'query-monitor' ),
-					'user'           => __( 'User', 'query-monitor' ),
-					'host'           => __( 'Host', 'query-monitor' ),
-					'database'       => __( 'Database', 'query-monitor' ),
+					'user' => __( 'User', 'query-monitor' ),
+					'host' => __( 'Host', 'query-monitor' ),
+					'database' => __( 'Database', 'query-monitor' ),
 				);
 
 				foreach ( $info as $field => $label ) {
@@ -238,6 +258,20 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 		echo '<td>' . esc_html( $data['wp']['version'] ) . '</td>';
 		echo '</tr>';
 
+		if ( isset( $data['wp']['environment_type'] ) ) {
+			echo '<tr>';
+			echo '<th scope="row">';
+			esc_html_e( 'Environment Type', 'query-monitor' );
+			printf(
+				'&nbsp;<span class="qm-info">(<a href="%s" target="_blank" class="qm-external-link">%s</a>)</span>',
+				'https://make.wordpress.org/core/2020/07/24/new-wp_get_environment_type-function-in-wordpress-5-5/',
+				esc_html__( 'Help', 'query-monitor' )
+			);
+			echo '</th>';
+			echo '<td>' . esc_html( $data['wp']['environment_type'] ) . '</td>';
+			echo '</tr>';
+		}
+
 		foreach ( $data['wp']['constants'] as $key => $val ) {
 
 			echo '<tr>';
@@ -256,11 +290,13 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 		echo '<h3>' . esc_html__( 'Server', 'query-monitor' ) . '</h3>';
 
 		$server = array(
-			'name'    => __( 'Software', 'query-monitor' ),
+			'name' => __( 'Software', 'query-monitor' ),
 			'version' => __( 'Version', 'query-monitor' ),
-			'address' => __( 'Address', 'query-monitor' ),
-			'host'    => __( 'Host', 'query-monitor' ),
-			'OS'      => __( 'OS', 'query-monitor' ),
+			'address' => __( 'IP Address', 'query-monitor' ),
+			'host' => __( 'Host', 'query-monitor' ),
+			/* translators: OS stands for Operating System */
+			'OS' => __( 'OS', 'query-monitor' ),
+			'arch' => __( 'Architecture', 'query-monitor' ),
 		);
 
 		echo '<table>';
@@ -286,6 +322,11 @@ class QM_Output_Html_Environment extends QM_Output_Html {
 
 }
 
+/**
+ * @param array<string, QM_Output> $output
+ * @param QM_Collectors $collectors
+ * @return array<string, QM_Output>
+ */
 function register_qm_output_html_environment( array $output, QM_Collectors $collectors ) {
 	$collector = QM_Collectors::get( 'environment' );
 	if ( $collector ) {

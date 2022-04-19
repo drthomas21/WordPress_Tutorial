@@ -5,25 +5,31 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Collector_Logger extends QM_Collector {
 
 	public $id = 'logger';
 
 	const EMERGENCY = 'emergency';
-	const ALERT     = 'alert';
-	const CRITICAL  = 'critical';
-	const ERROR     = 'error';
-	const WARNING   = 'warning';
-	const NOTICE    = 'notice';
-	const INFO      = 'info';
-	const DEBUG     = 'debug';
+	const ALERT = 'alert';
+	const CRITICAL = 'critical';
+	const ERROR = 'error';
+	const WARNING = 'warning';
+	const NOTICE = 'notice';
+	const INFO = 'info';
+	const DEBUG = 'debug';
 
-	public function name() {
-		return __( 'Logger', 'query-monitor' );
-	}
+	/**
+	 * @return void
+	 */
+	public function set_up() {
+		parent::set_up();
 
-	public function __construct() {
-		parent::__construct();
+		$this->data['counts'] = array_fill_keys( $this->get_levels(), 0 );
+
 		foreach ( $this->get_levels() as $level ) {
 			add_action( "qm/{$level}", array( $this, $level ), 10, 2 );
 		}
@@ -31,38 +37,98 @@ class QM_Collector_Logger extends QM_Collector {
 		add_action( 'qm/log', array( $this, 'log' ), 10, 3 );
 	}
 
+	/**
+	 * @return void
+	 */
+	public function tear_down() {
+		foreach ( $this->get_levels() as $level ) {
+			remove_action( "qm/{$level}", array( $this, $level ), 10 );
+		}
+
+		remove_action( 'qm/log', array( $this, 'log' ), 10 );
+
+		parent::tear_down();
+	}
+
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function emergency( $message, array $context = array() ) {
-		$this->store( 'emergency', $message, $context );
+		$this->store( self::EMERGENCY, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function alert( $message, array $context = array() ) {
-		$this->store( 'alert', $message, $context );
+		$this->store( self::ALERT, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function critical( $message, array $context = array() ) {
-		$this->store( 'critical', $message, $context );
+		$this->store( self::CRITICAL, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function error( $message, array $context = array() ) {
-		$this->store( 'error', $message, $context );
+		$this->store( self::ERROR, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function warning( $message, array $context = array() ) {
-		$this->store( 'warning', $message, $context );
+		$this->store( self::WARNING, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function notice( $message, array $context = array() ) {
-		$this->store( 'notice', $message, $context );
+		$this->store( self::NOTICE, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function info( $message, array $context = array() ) {
-		$this->store( 'info', $message, $context );
+		$this->store( self::INFO, $message, $context );
 	}
 
+	/**
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @return void
+	 */
 	public function debug( $message, array $context = array() ) {
-		$this->store( 'debug', $message, $context );
+		$this->store( self::DEBUG, $message, $context );
 	}
 
+	/**
+	 * @param string $level
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @phpstan-param self::* $level
+	 * @return void
+	 */
 	public function log( $level, $message, array $context = array() ) {
 		if ( ! in_array( $level, $this->get_levels(), true ) ) {
 			throw new InvalidArgumentException( __( 'Unsupported log level', 'query-monitor' ) );
@@ -71,9 +137,18 @@ class QM_Collector_Logger extends QM_Collector {
 		$this->store( $level, $message, $context );
 	}
 
+	/**
+	 * @param string $level
+	 * @param mixed $message
+	 * @param array<string, mixed> $context
+	 * @phpstan-param self::* $level
+	 * @return void
+	 */
 	protected function store( $level, $message, array $context = array() ) {
 		$trace = new QM_Backtrace( array(
-			'ignore_frames' => 2,
+			'ignore_hook' => array(
+				current_filter() => true,
+			),
 		) );
 
 		if ( is_wp_error( $message ) ) {
@@ -84,22 +159,38 @@ class QM_Collector_Logger extends QM_Collector {
 			);
 		}
 
-		if ( $message instanceof Exception ) {
+		if ( ( $message instanceof Exception ) || ( $message instanceof Throwable ) ) {
 			$message = get_class( $message ) . ': ' . $message->getMessage();
 		}
 
 		if ( ! QM_Util::is_stringy( $message ) ) {
-			$message = QM_Util::json_format( $message );
+			if ( null === $message ) {
+				$message = 'null';
+			} elseif ( false === $message ) {
+				$message = 'false';
+			} elseif ( true === $message ) {
+				$message = 'true';
+			}
+
+			$message = print_r( $message, true );
+		} elseif ( '' === trim( $message ) ) {
+			$message = '(Empty string)';
 		}
 
+		$this->data['counts'][ $level ]++;
 		$this->data['logs'][] = array(
 			'message' => self::interpolate( $message, $context ),
-			'context' => $context,
-			'trace'   => $trace,
-			'level'   => $level,
+			'filtered_trace' => $trace->get_filtered_trace(),
+			'component' => $trace->get_component(),
+			'level' => $level,
 		);
 	}
 
+	/**
+	 * @param string $message
+	 * @param array<string, mixed> $context
+	 * @return string
+	 */
 	protected static function interpolate( $message, array $context = array() ) {
 		// build a replacement array with braces around the context keys
 		$replace = array();
@@ -117,6 +208,9 @@ class QM_Collector_Logger extends QM_Collector {
 		return strtr( $message, $replace );
 	}
 
+	/**
+	 * @return void
+	 */
 	public function process() {
 		if ( empty( $this->data['logs'] ) ) {
 			return;
@@ -125,13 +219,17 @@ class QM_Collector_Logger extends QM_Collector {
 		$components = array();
 
 		foreach ( $this->data['logs'] as $row ) {
-			$component                      = $row['trace']->get_component();
+			$component = $row['component'];
 			$components[ $component->name ] = $component->name;
 		}
 
 		$this->data['components'] = $components;
 	}
 
+	/**
+	 * @return array<int, string>
+	 * @phpstan-return array<int, self::*>
+	 */
 	public function get_levels() {
 		return array(
 			self::EMERGENCY,
@@ -145,6 +243,10 @@ class QM_Collector_Logger extends QM_Collector {
 		);
 	}
 
+	/**
+	 * @return array<int, string>
+	 * @phpstan-return array<int, self::*>
+	 */
 	public function get_warning_levels() {
 		return array(
 			self::EMERGENCY,

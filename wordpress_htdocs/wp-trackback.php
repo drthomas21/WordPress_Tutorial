@@ -1,1 +1,1 @@
-/var/www/sites/WordPress_Tutorial/wp-core/5.1.1/wp-trackback.php
+/var/www/sites/WordPress_Tutorial/wp-core/5.9.3/wp-trackback.php

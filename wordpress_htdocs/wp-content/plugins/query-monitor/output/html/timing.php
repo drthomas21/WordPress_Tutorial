@@ -5,13 +5,34 @@
  * @package query-monitor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class QM_Output_Html_Timing extends QM_Output_Html {
+
+	/**
+	 * Collector instance.
+	 *
+	 * @var QM_Collector_Timing Collector.
+	 */
+	protected $collector;
 
 	public function __construct( QM_Collector $collector ) {
 		parent::__construct( $collector );
 		add_filter( 'qm/output/menus', array( $this, 'admin_menu' ), 15 );
 	}
 
+	/**
+	 * @return string
+	 */
+	public function name() {
+		return __( 'Timing', 'query-monitor' );
+	}
+
+	/**
+	 * @return void
+	 */
 	public function output() {
 
 		$data = $this->collector->get_data();
@@ -25,6 +46,8 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 		echo '<thead>';
 		echo '<tr>';
 		echo '<th scope="col">' . esc_html__( 'Tracked Function', 'query-monitor' ) . '</th>';
+		echo '<th scope="col" class="qm-num">' . esc_html__( 'Started', 'query-monitor' ) . '</th>';
+		echo '<th scope="col" class="qm-num">' . esc_html__( 'Stopped', 'query-monitor' ) . '</th>';
 		echo '<th scope="col" class="qm-num">' . esc_html__( 'Time', 'query-monitor' ) . '</th>';
 		echo '<th scope="col" class="qm-num">' . esc_html__( 'Memory', 'query-monitor' ) . '</th>';
 		echo '<th scope="col">' . esc_html__( 'Component', 'query-monitor' ) . '</th>';
@@ -35,9 +58,9 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 		if ( ! empty( $data['timing'] ) ) {
 			foreach ( $data['timing'] as $row ) {
 
-				$component = $row['trace']->get_component();
-				$trace     = $row['trace']->get_filtered_trace();
-				$file      = self::output_filename( $row['function'], $trace[0]['file'], $trace[0]['line'] );
+				$component = $row['component'];
+				$trace = $row['filtered_trace'];
+				$file = self::output_filename( $row['function'], $trace[0]['file'], $trace[0]['line'] );
 
 				echo '<tr>';
 
@@ -46,13 +69,24 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 					echo $file; // WPCS: XSS ok.
 					echo '</td>';
 				} else {
-					echo '<td class="qm-ltr qm-has-toggle"><ol class="qm-toggler">';
+					echo '<td class="qm-ltr qm-has-toggle">';
 					echo self::build_toggler(); // WPCS: XSS ok;
+					echo '<ol>';
 					echo '<li>';
 					echo $file; // WPCS: XSS ok.
 					echo '</li>';
 					echo '</ol></td>';
 				}
+
+				printf(
+					'<td class="qm-num">%s</td>',
+					esc_html( number_format_i18n( $row['start_time'], 4 ) )
+				);
+
+				printf(
+					'<td class="qm-num">%s</td>',
+					esc_html( number_format_i18n( $row['end_time'], 4 ) )
+				);
 
 				printf(
 					'<td class="qm-num">%s</td>',
@@ -83,6 +117,9 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 						echo esc_html( $row['function'] . ': ' . $lap_id );
 						echo '</code></td>';
 
+						echo '<td class="qm-num"></td>';
+						echo '<td class="qm-num"></td>';
+
 						printf(
 							'<td class="qm-num">%s</td>',
 							esc_html( number_format_i18n( $lap['time_used'], 4 ) )
@@ -106,9 +143,9 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 		}
 		if ( ! empty( $data['warning'] ) ) {
 			foreach ( $data['warning'] as $row ) {
-				$component = $row['trace']->get_component();
-				$trace     = $row['trace']->get_filtered_trace();
-				$file      = self::output_filename( $row['function'], $trace[0]['file'], $trace[0]['line'] );
+				$component = $row['component'];
+				$trace = $row['filtered_trace'];
+				$file = self::output_filename( $row['function'], $trace[0]['file'], $trace[0]['line'] );
 
 				echo '<tr class="qm-warn">';
 				if ( self::has_clickable_links() ) {
@@ -116,8 +153,9 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 					echo $file; // WPCS: XSS ok.
 					echo '</td>';
 				} else {
-					echo '<td class="qm-ltr qm-has-toggle"><ol class="qm-toggler">';
+					echo '<td class="qm-ltr qm-has-toggle">';
 					echo self::build_toggler(); // WPCS: XSS ok;
+					echo '<ol>';
 					echo '<li>';
 					echo $file; // WPCS: XSS ok.
 					echo '</li>';
@@ -125,7 +163,7 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 				}
 
 				printf(
-					'<td colspan="2"><span class="dashicons dashicons-warning" aria-hidden="true"></span>%s</td>',
+					'<td colspan="4"><span class="dashicons dashicons-warning" aria-hidden="true"></span>%s</td>',
 					esc_html( $row['message'] )
 				);
 
@@ -141,6 +179,10 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 		$this->after_tabular_output();
 	}
 
+	/**
+	 * @param array<string, mixed[]> $menu
+	 * @return array<string, mixed[]>
+	 */
 	public function admin_menu( array $menu ) {
 		$data = $this->collector->get_data();
 
@@ -153,7 +195,7 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 				$count += count( $data['warning'] );
 			}
 			/* translators: %s: Number of function timing results that are available */
-			$label = _n( 'Timings (%s)', 'Timings (%s)', $count, 'query-monitor' );
+			$label = __( 'Timings (%s)', 'query-monitor' );
 
 			$menu[ $this->collector->id() ] = $this->menu( array(
 				'title' => esc_html( sprintf(
@@ -168,6 +210,11 @@ class QM_Output_Html_Timing extends QM_Output_Html {
 
 }
 
+/**
+ * @param array<string, QM_Output> $output
+ * @param QM_Collectors $collectors
+ * @return array<string, QM_Output>
+ */
 function register_qm_output_html_timing( array $output, QM_Collectors $collectors ) {
 	$collector = QM_Collectors::get( 'timing' );
 	if ( $collector ) {
