@@ -235,11 +235,12 @@ app.config(["$routeProvider","$locationProvider",function($routeProvider,$locati
     });
 
     $scope.$on("$routeChangeSuccess",function(e,current,previous){
+        console.log('url',$route.url());
         if(typeof gtag != "undefined") {
             gtag('set','page_path', $route.url());
             gtag('event','page_view');
         }
-        if(typeof ga != "undefined") {
+        else if(typeof ga != "undefined") {
             ga("send","pageview",$route.url());
         }
 
