@@ -15,8 +15,12 @@
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
 
-        gtag('config', 'G-SWNVKMV3X3');
-        gtag('config', 'UA-29594513-13');
+        gtag('config', 'G-SWNVKMV3X3', {
+            'send_page_view':false
+        });
+        gtag('config', 'UA-29594513-13', {
+            'send_page_view':false
+        });
     </script>
 
     <!-- Facebook App ID -->
