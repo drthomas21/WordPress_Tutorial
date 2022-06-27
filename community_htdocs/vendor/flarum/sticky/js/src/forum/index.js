@@ -1,11 +1,12 @@
-import app from 'flarum/app';
-import Model from 'flarum/Model';
-import Discussion from 'flarum/models/Discussion';
+import app from 'flarum/forum/app';
+import Model from 'flarum/common/Model';
+import Discussion from 'flarum/common/models/Discussion';
 
 import DiscussionStickiedPost from './components/DiscussionStickiedPost';
 import addStickyBadge from './addStickyBadge';
 import addStickyControl from './addStickyControl';
 import addStickyExcerpt from './addStickyExcerpt';
+import addStickyClass from './addStickyClass';
 
 app.initializers.add('flarum-sticky', () => {
   app.postComponents.discussionStickied = DiscussionStickiedPost;
@@ -16,5 +17,5 @@ app.initializers.add('flarum-sticky', () => {
   addStickyBadge();
   addStickyControl();
   addStickyExcerpt();
+  addStickyClass();
 });
-

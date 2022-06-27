@@ -2,21 +2,28 @@
     "name": "flarum/pusher",
     "description": "See new discussions and posts in real-time using Pusher.",
     "type": "flarum-extension",
-    "keywords": ["discussion"],
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Toby Zerner",
-            "email": "toby.zerner@gmail.com"
-        }
+    "keywords": [
+        "discussion"
     ],
+    "license": "MIT",
     "support": {
         "issues": "https://github.com/flarum/core/issues",
-        "source": "https://github.com/flarum/pusher"
+        "source": "https://github.com/flarum/pusher",
+        "forum": "https://discuss.flarum.org"
     },
+    "homepage": "https://flarum.org",
+    "funding": [
+        {
+            "type": "website",
+            "url": "https://flarum.org/donate/"
+        }
+    ],
     "require": {
-        "flarum/core": "^0.1.0-beta.8",
+        "flarum/core": "^1.3",
         "pusher/pusher-php-server": "^2.2"
+    },
+    "require-dev": {
+        "flarum/tags": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -25,10 +32,11 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.1.x-dev"
+            "dev-main": "1.x-dev"
         },
         "flarum-extension": {
             "title": "Pusher",
+            "category": "feature",
             "icon": {
                 "image": "icon.png",
                 "backgroundSize": "46% 63%",
@@ -37,6 +45,31 @@
                 "backgroundColor": "#40bad8",
                 "color": "#fff"
             }
+        },
+        "flarum-cli": {
+            "modules": {
+                "admin": true,
+                "forum": true,
+                "js": true,
+                "jsCommon": false,
+                "css": true,
+                "gitConf": true,
+                "githubActions": true,
+                "prettier": true,
+                "typescript": true,
+                "bundlewatch": false,
+                "backendTesting": false,
+                "editorConfig": true,
+                "styleci": true
+            }
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../*/*"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

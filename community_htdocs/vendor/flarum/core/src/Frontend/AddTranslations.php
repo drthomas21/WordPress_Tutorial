@@ -3,17 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend;
 
 use Flarum\Frontend\Compiler\Source\SourceCollector;
 use Flarum\Locale\LocaleManager;
+use Illuminate\Support\Arr;
 
+/**
+ * @internal
+ */
 class AddTranslations
 {
     /**
@@ -54,9 +56,14 @@ class AddTranslations
 
     private function getTranslations(string $locale)
     {
-        $translations = $this->locales->getTranslator()->getCatalogue($locale)->all('messages');
+        $catalogue = $this->locales->getTranslator()->getCatalogue($locale);
+        $translations = $catalogue->all('messages');
 
-        return array_only(
+        while ($catalogue = $catalogue->getFallbackCatalogue()) {
+            $translations = array_replace($catalogue->all('messages'), $translations);
+        }
+
+        return Arr::only(
             $translations,
             array_filter(array_keys($translations), $this->filter)
         );

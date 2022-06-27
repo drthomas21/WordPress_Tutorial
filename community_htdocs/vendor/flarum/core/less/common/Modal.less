@@ -13,10 +13,10 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: @zindex-modal-background;
-  background-color: @overlay-bg;
+  z-index: var(--zindex-modal-background);
+  background-color: var(--overlay-bg);
   opacity: 0;
-  .transition(0.2s opacity);
+  transition: opacity 0.2s;
 
   &.in {
     opacity: 1;
@@ -32,16 +32,16 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: @zindex-modal;
+  z-index: var(--zindex-modal);
   -webkit-overflow-scrolling: touch;
 
   // When fading in the modal, animate it to slide down
   .Modal {
-    .scale(0.9);
-    .transition-transform(0.2s ease-out);
+    transform: scale(0.9);
+    transition: transform 0.2s ease-out;
   }
   &.in .Modal {
-    .scale(1);
+    transform: scale(1);
   }
 }
 .modal-open .ModalManager {
@@ -60,7 +60,7 @@
 // Actual modal
 .Modal-content {
   position: relative;
-  background-color: @body-bg;
+  background-color: var(--body-bg);
   background-clip: padding-box;
   margin: 0 auto;
   overflow: hidden;
@@ -88,13 +88,13 @@
 }
 
 .Modal-body {
-  background-color: @control-bg;
+  background-color: var(--control-bg);
   padding: 25px 30px;
-  color: @control-color;
+  color: var(--control-color);
 
   .FormControl {
-    background-color: @body-bg;
-    color: @text-color;
+    background-color: var(--body-bg);
+    color: var(--text-color);
   }
 
   .Form--centered {
@@ -105,31 +105,28 @@
       text-align: left;
     }
   }
+
+  .off.Checkbox--switch .Checkbox-display {
+    background: var(--muted-more-color);
+  }
 }
 .Modal-footer {
   border: 0;
   padding: 20px;
   text-align: center;
-  color: @muted-color;
+  color: var(--muted-color);
 }
-.Modal-loading {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: fade(@body-bg, 90%);
-  opacity: 0;
-  pointer-events: none;
-  border-radius: @border-radius;
-  .transition(opacity 0.2s);
 
-  &.active {
-    opacity: 1;
-    pointer-events: auto;
+.Modal--inverted {
+  .Modal-header {
+    background-color: var(--control-bg);
+    color: var(--control-color);
+  }
+  .Modal-body {
+    background-color: transparent;
+    color: unset;
   }
 }
-
 
 @media @phone {
   .ModalManager.fade {
@@ -142,8 +139,8 @@
     bottom: 0;
     top: 0;
     overflow: auto;
-    .transition-transform(0.2s);
-    .translate3d(0, 100vh, 0);
+    transition: transform 0.2s ease-out;
+    transform: translate(0, 100vh);
 
     &.in {
       -webkit-transform: none !important;
@@ -156,6 +153,7 @@
     }
   }
   .Modal {
+    max-width: 100%;
     margin: 0;
     -webkit-transform: none !important;
             transform: none !important;
@@ -164,8 +162,8 @@
     border-radius: 0;
     border: 0;
     min-height: 100vh;
-    padding-top: @header-height-phone;
-    .box-shadow(none);
+    padding-top: var(--header-height-phone);
+    box-shadow: none;
   }
   .Modal-header {
     padding: 0;
@@ -187,8 +185,8 @@
   .Modal-content {
 
     border: 0;
-    border-radius: @border-radius;
-    .box-shadow(0 7px 15px @shadow-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 7px 15px var(--shadow-color);
   }
   .Modal--small {
     max-width: 375px;

@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Database;
@@ -88,21 +86,6 @@ class DatabaseMigrationRepository implements MigrationRepositoryInterface
         }
 
         $query->delete();
-    }
-
-    /**
-     * Create the migration repository data store.
-     *
-     * @return void
-     */
-    public function createRepository()
-    {
-        $schema = $this->connection->getSchemaBuilder();
-
-        $schema->create($this->table, function ($table) {
-            $table->string('migration');
-            $table->string('extension')->nullable();
-        });
     }
 
     /**

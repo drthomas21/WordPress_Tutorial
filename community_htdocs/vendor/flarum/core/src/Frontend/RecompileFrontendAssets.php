@@ -3,21 +3,18 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend;
 
-use Flarum\Extension\Event\Disabled;
-use Flarum\Extension\Event\Enabled;
-use Flarum\Foundation\Event\ClearingCache;
 use Flarum\Locale\LocaleManager;
 use Flarum\Settings\Event\Saved;
-use Illuminate\Contracts\Events\Dispatcher;
 
+/**
+ * @internal
+ */
 class RecompileFrontendAssets
 {
     /**
@@ -40,19 +37,9 @@ class RecompileFrontendAssets
         $this->locales = $locales;
     }
 
-    /**
-     * @param Dispatcher $events
-     */
-    public function subscribe(Dispatcher $events)
-    {
-        $events->listen(Saved::class, [$this, 'whenSettingsSaved']);
-        $events->listen(Enabled::class, [$this, 'flush']);
-        $events->listen(Disabled::class, [$this, 'flush']);
-        $events->listen(ClearingCache::class, [$this, 'flush']);
-    }
-
     public function whenSettingsSaved(Saved $event)
     {
+        // @deprecated 'theme_' check, to be removed in 2.0
         if (preg_grep('/^theme_/i', array_keys($event->settings))) {
             $this->flushCss();
         }

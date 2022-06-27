@@ -3,16 +3,16 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Api\Serializer\PostSerializer;
+use Flarum\Http\RequestUtil;
 use Flarum\Post\PostRepository;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -52,6 +52,6 @@ class ShowPostController extends AbstractShowController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        return $this->posts->findOrFail(array_get($request->getQueryParams(), 'id'), $request->getAttribute('actor'));
+        return $this->posts->findOrFail(Arr::get($request->getQueryParams(), 'id'), RequestUtil::getActor($request));
     }
 }

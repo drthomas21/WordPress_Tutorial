@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Discussion;
@@ -19,13 +17,13 @@ use Flarum\Discussion\Event\Hidden;
 use Flarum\Discussion\Event\Renamed;
 use Flarum\Discussion\Event\Restored;
 use Flarum\Discussion\Event\Started;
-use Flarum\Event\GetModelIsPrivate;
 use Flarum\Foundation\EventGeneratorTrait;
 use Flarum\Notification\Notification;
 use Flarum\Post\MergeableInterface;
 use Flarum\Post\Post;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
-use Flarum\Util\Str;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -33,7 +31,7 @@ use Flarum\Util\Str;
  * @property string $slug
  * @property int $comment_count
  * @property int $participant_count
- * @property int $post_number_index
+ * @property int $post_number_index !!DEPRECATED!!
  * @property \Carbon\Carbon $created_at
  * @property int|null $user_id
  * @property int|null $first_post_id
@@ -98,7 +96,7 @@ class Discussion extends AbstractModel
     {
         parent::boot();
 
-        static::deleting(function (Discussion $discussion) {
+        static::deleting(function (self $discussion) {
             Notification::whereSubjectModel(Post::class)
                 ->whereIn('subject_id', function ($query) use ($discussion) {
                     $query->select('id')->from('posts')->where('discussion_id', $discussion->id);
@@ -106,16 +104,10 @@ class Discussion extends AbstractModel
                 ->delete();
         });
 
-        static::deleted(function (Discussion $discussion) {
+        static::deleted(function (self $discussion) {
             $discussion->raise(new Deleted($discussion));
 
             Notification::whereSubject($discussion)->delete();
-        });
-
-        static::saving(function (Discussion $discussion) {
-            $event = new GetModelIsPrivate($discussion);
-
-            $discussion->is_private = static::$dispatcher->until($event) === true;
         });
     }
 
@@ -454,6 +446,10 @@ class Discussion extends AbstractModel
     protected function setTitleAttribute($title)
     {
         $this->attributes['title'] = $title;
-        $this->slug = Str::slug($title);
+        $this->slug = Str::slug(
+            $title,
+            '-',
+            resolve(SettingsRepositoryInterface::class)->get('default_locale', 'en')
+        );
     }
 }

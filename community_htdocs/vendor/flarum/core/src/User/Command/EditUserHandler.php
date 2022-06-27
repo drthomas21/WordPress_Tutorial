@@ -3,28 +3,25 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User\Command;
 
 use Flarum\Foundation\DispatchEventsTrait;
-use Flarum\User\AssertPermissionTrait;
 use Flarum\User\Event\GroupsChanged;
 use Flarum\User\Event\Saving;
 use Flarum\User\User;
 use Flarum\User\UserRepository;
 use Flarum\User\UserValidator;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class EditUserHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\User\UserRepository
@@ -61,15 +58,14 @@ class EditUserHandler
 
         $user = $this->users->findOrFail($command->userId, $actor);
 
-        $canEdit = $actor->can('edit', $user);
         $isSelf = $actor->id === $user->id;
 
-        $attributes = array_get($data, 'attributes', []);
-        $relationships = array_get($data, 'relationships', []);
+        $attributes = Arr::get($data, 'attributes', []);
+        $relationships = Arr::get($data, 'relationships', []);
         $validate = [];
 
         if (isset($attributes['username'])) {
-            $this->assertPermission($canEdit);
+            $actor->assertCan('editCredentials', $user);
             $user->rename($attributes['username']);
         }
 
@@ -81,29 +77,30 @@ class EditUserHandler
                     $validate['email'] = $attributes['email'];
                 }
             } else {
-                $this->assertPermission($canEdit);
+                $actor->assertCan('editCredentials', $user);
                 $user->changeEmail($attributes['email']);
             }
         }
 
-        if ($actor->isAdmin() && ! empty($attributes['isEmailConfirmed'])) {
+        if (! empty($attributes['isEmailConfirmed'])) {
+            $actor->assertAdmin();
             $user->activate();
         }
 
         if (isset($attributes['password'])) {
-            $this->assertPermission($canEdit);
+            $actor->assertCan('editCredentials', $user);
             $user->changePassword($attributes['password']);
 
             $validate['password'] = $attributes['password'];
         }
 
         if (! empty($attributes['markedAllAsReadAt'])) {
-            $this->assertPermission($isSelf);
+            $actor->assertPermission($isSelf);
             $user->markAllAsRead();
         }
 
         if (! empty($attributes['preferences'])) {
-            $this->assertPermission($isSelf);
+            $actor->assertPermission($isSelf);
 
             foreach ($attributes['preferences'] as $k => $v) {
                 $user->setPreference($k, $v);
@@ -111,21 +108,29 @@ class EditUserHandler
         }
 
         if (isset($relationships['groups']['data']) && is_array($relationships['groups']['data'])) {
-            $this->assertPermission($canEdit);
+            $actor->assertCan('editGroups', $user);
+
+            $oldGroups = $user->groups()->get()->all();
+            $oldGroupIds = Arr::pluck($oldGroups, 'id');
 
             $newGroupIds = [];
             foreach ($relationships['groups']['data'] as $group) {
-                if ($id = array_get($group, 'id')) {
+                if ($id = Arr::get($group, 'id')) {
                     $newGroupIds[] = $id;
                 }
             }
 
+            // Ensure non-admins aren't adding/removing admins
+            $adminChanged = in_array('1', array_diff($oldGroupIds, $newGroupIds)) || in_array('1', array_diff($newGroupIds, $oldGroupIds));
+            $actor->assertPermission(! $adminChanged || $actor->isAdmin());
+
             $user->raise(
-                new GroupsChanged($user, $user->groups()->get()->all())
+                new GroupsChanged($user, $oldGroups)
             );
 
             $user->afterSave(function (User $user) use ($newGroupIds) {
                 $user->groups()->sync($newGroupIds);
+                $user->unsetRelation('groups');
             });
         }
 

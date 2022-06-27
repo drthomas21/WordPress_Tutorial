@@ -51,9 +51,10 @@
   white-space: nowrap;
   line-height: 20px;
   padding: 8px 13px;
-  border-radius: @border-radius;
+  border-radius: var(--border-radius);
   .user-select(none);
-  .Button--color(@control-color, @control-bg);
+  color: var(--button-color);
+  background: var(--button-bg);
   border: 0;
 
   &:hover {
@@ -64,12 +65,6 @@
   &.active,
   .open > &.Dropdown-toggle {
     .box-shadow(inset 0 3px 5px rgba(0, 0, 0, .125));
-    outline: none;
-  }
-
-  &:focus,
-  &.focus {
-    outline: none;
   }
 
   &.disabled,
@@ -77,7 +72,7 @@
   fieldset[disabled] & {
     cursor: default;
     opacity: 0.65;
-    .box-shadow(none);
+    box-shadow: none;
   }
 
   a& {
@@ -88,42 +83,33 @@
   }
 
   .Button-label {
-    .transition(margin-right 0.1s);
+    transition: margin-right 0.1s;
   }
-  .LoadingIndicator {
-    color: inherit;
-    margin: 0 -5px 0 -15px;
-  }
-  &.loading {
-    .Button-label {
-      margin-right: 20px;
-    }
-  }
-}
 
-.Button--color(@color; @background) {
-  color: @color;
-  background: @background;
+  .LoadingIndicator-container {
+    color: inherit;
+    margin-top: -0.175em;
+    margin-left: 4px;
+  }
 
   &:hover,
   &:focus,
   &.focus {
-    background-color: darken(fadein(@background, 5%), 5%);
+    background-color: var(--button-bg-hover);
   }
 
   &:active,
   &.active,
   .open > .Dropdown-toggle& {
-    background-color: darken(fadein(@background, 10%), 10%);
+    background-color: var(--button-bg-active);
   }
 
   &.disabled,
   &[disabled],
   fieldset[disabled] & {
-    background: @background;
+    background: var(--button-bg-disabled);
   }
 }
-
 
 .Button--square {
   padding-left: 9px;
@@ -141,7 +127,7 @@
 
   &:hover {
     background: transparent !important;
-    color: @link-color;
+    color: var(--link-color);
   }
   &:active,
   &.active,
@@ -149,8 +135,8 @@
   &.focus,
   .open > &.Dropdown-toggle {
     background: transparent !important;
-    .box-shadow(none);
-    color: @link-color;
+    box-shadow: none;
+    color: var(--link-color);
   }
 }
 .Button--text {
@@ -165,11 +151,11 @@
   &:active,
   &.active,
   .open > &.Dropdown-toggle {
-    .box-shadow(none);
+    box-shadow: none;
   }
 }
 .Button--primary {
-  .Button--color(@body-bg, @primary-color);
+  .Button--color-auto('button-primary');
   font-weight: bold;
   padding-left: 20px;
   padding-right: 20px;
@@ -179,7 +165,7 @@
   }
 }
 .Button--danger {
-  .Button--color(@control-danger-color, @control-danger-bg);
+  .Button--color-auto('control-danger');
 }
 .Button--more {
   padding: 2px 4px;
@@ -237,4 +223,37 @@
   font-size: 12px;
   font-weight: bold;
   margin-left: 10px;
+}
+
+// Remove all user-agent styles from the Button
+.Button--ua-reset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  overflow: visible;
+  text-align: inherit;
+  vertical-align: inherit;
+
+  background: transparent;
+
+  /* inherit font & color from ancestor */
+  color: inherit;
+  font: inherit;
+
+  /* Normalize `line-height`. Cannot be changed from `normal` in Firefox 4+. */
+  line-height: normal;
+
+  /* Corrects font smoothing for webkit */
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
+
+  /* Corrects inability to style clickable `input` types in iOS */
+  -webkit-appearance: none;
+  appearance: none;
+
+  &::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+  }
 }

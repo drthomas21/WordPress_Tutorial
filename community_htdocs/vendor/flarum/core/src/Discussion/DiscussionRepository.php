@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Discussion;
@@ -44,16 +42,29 @@ class DiscussionRepository
     /**
      * Get the IDs of discussions which a user has read completely.
      *
+     * @deprecated 1.3 Use `getReadIdsQuery` instead
+     *
      * @param User $user
      * @return array
      */
     public function getReadIds(User $user)
     {
-        return Discussion::leftJoin('discussions_users', 'discussions_users.discussion_id', '=', 'discussions.id')
-            ->where('user_id', $user->id)
-            ->whereColumn('last_read_post_number', '>=', 'last_post_number')
-            ->pluck('id')
+        return $this->getReadIdsQuery($user)
             ->all();
+    }
+
+    /**
+     * Get a query containing the IDs of discussions which a user has read completely.
+     *
+     * @param User $user
+     * @return Builder
+     */
+    public function getReadIdsQuery(User $user): Builder
+    {
+        return Discussion::leftJoin('discussion_user', 'discussion_user.discussion_id', '=', 'discussions.id')
+            ->where('discussion_user.user_id', $user->id)
+            ->whereColumn('last_read_post_number', '>=', 'last_post_number')
+            ->select('id');
     }
 
     /**

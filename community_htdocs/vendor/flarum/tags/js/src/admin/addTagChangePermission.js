@@ -1,6 +1,6 @@
-import { extend } from 'flarum/extend';
-import PermissionGrid from 'flarum/components/PermissionGrid';
-import SettingDropdown from 'flarum/components/SettingDropdown';
+import { extend } from 'flarum/common/extend';
+import PermissionGrid from 'flarum/admin/components/PermissionGrid';
+import SettingDropdown from 'flarum/admin/components/SettingDropdown';
 
 export default function() {
   extend(PermissionGrid.prototype, 'startItems', items => {
@@ -12,7 +12,7 @@ export default function() {
 
         return SettingDropdown.component({
           defaultLabel: minutes
-            ? app.translator.transChoice('core.admin.permissions_controls.allow_some_minutes_button', minutes, {count: minutes})
+            ? app.translator.trans('core.admin.permissions_controls.allow_some_minutes_button', {count: minutes})
             : app.translator.trans('core.admin.permissions_controls.allow_indefinitely_button'),
           key: 'allow_tag_change',
           options: [

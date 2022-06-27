@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post\Command;
@@ -14,13 +12,11 @@ namespace Flarum\Post\Command;
 use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Post\Event\Deleting;
 use Flarum\Post\PostRepository;
-use Flarum\User\AssertPermissionTrait;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class DeletePostHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\Post\PostRepository
@@ -48,7 +44,7 @@ class DeletePostHandler
 
         $post = $this->posts->findOrFail($command->postId, $actor);
 
-        $this->assertCan($actor, 'delete', $post);
+        $actor->assertCan('delete', $post);
 
         $this->events->dispatch(
             new Deleting($post, $actor, $command->data)

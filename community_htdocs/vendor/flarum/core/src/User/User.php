@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User;
@@ -15,25 +13,27 @@ use Carbon\Carbon;
 use DomainException;
 use Flarum\Database\AbstractModel;
 use Flarum\Database\ScopeVisibilityTrait;
-use Flarum\Event\ConfigureUserPreferences;
-use Flarum\Event\GetDisplayName;
-use Flarum\Event\PrepareUserGroups;
+use Flarum\Discussion\Discussion;
 use Flarum\Foundation\EventGeneratorTrait;
 use Flarum\Group\Group;
 use Flarum\Group\Permission;
-use Flarum\Http\UrlGenerator;
+use Flarum\Http\AccessToken;
 use Flarum\Notification\Notification;
+use Flarum\Post\Post;
+use Flarum\User\DisplayName\DriverInterface;
 use Flarum\User\Event\Activated;
 use Flarum\User\Event\AvatarChanged;
-use Flarum\User\Event\CheckingPassword;
 use Flarum\User\Event\Deleted;
 use Flarum\User\Event\EmailChanged;
 use Flarum\User\Event\EmailChangeRequested;
 use Flarum\User\Event\PasswordChanged;
 use Flarum\User\Event\Registered;
 use Flarum\User\Event\Renamed;
+use Flarum\User\Exception\NotAuthenticatedException;
+use Flarum\User\Exception\PermissionDeniedException;
+use Illuminate\Contracts\Filesystem\Factory;
 use Illuminate\Contracts\Hashing\Hasher;
-use Illuminate\Contracts\Session\Session;
+use Illuminate\Support\Arr;
 
 /**
  * @property int $id
@@ -76,9 +76,10 @@ class User extends AbstractModel
     protected $permissions = null;
 
     /**
-     * @var Session
+     * An array of callables, through each of which the user's list of groups is passed
+     * before being returned.
      */
-    protected $session;
+    protected static $groupProcessors = [];
 
     /**
      * An array of registered user preferences. Each preference is defined with
@@ -90,6 +91,13 @@ class User extends AbstractModel
      * @var array
      */
     protected static $preferences = [];
+
+    /**
+     * A driver for getting display names.
+     *
+     * @var DriverInterface
+     */
+    protected static $displayNameDriver;
 
     /**
      * The hasher with which to hash passwords.
@@ -106,6 +114,19 @@ class User extends AbstractModel
     protected static $gate;
 
     /**
+     * Callbacks to check passwords.
+     *
+     * @var array
+     */
+    protected static $passwordCheckers;
+
+    /**
+     * Difference from the current `last_seen` attribute value before `updateLastSeen()`
+     * will update the attribute on the DB. Measured in seconds.
+     */
+    private const LAST_SEEN_UPDATE_DIFF = 180;
+
+    /**
      * Boot the model.
      *
      * @return void
@@ -115,21 +136,17 @@ class User extends AbstractModel
         parent::boot();
 
         // Don't allow the root admin to be deleted.
-        static::deleting(function (User $user) {
+        static::deleting(function (self $user) {
             if ($user->id == 1) {
                 throw new DomainException('Cannot delete the root admin');
             }
         });
 
-        static::deleted(function (User $user) {
+        static::deleted(function (self $user) {
             $user->raise(new Deleted($user));
 
             Notification::whereSubject($user)->delete();
         });
-
-        static::$dispatcher->dispatch(
-            new ConfigureUserPreferences
-        );
     }
 
     /**
@@ -155,19 +172,26 @@ class User extends AbstractModel
     }
 
     /**
-     * @return Gate
-     */
-    public static function getGate()
-    {
-        return static::$gate;
-    }
-
-    /**
      * @param Gate $gate
      */
     public static function setGate($gate)
     {
         static::$gate = $gate;
+    }
+
+    /**
+     * Set the display name driver.
+     *
+     * @param DriverInterface $driver
+     */
+    public static function setDisplayNameDriver(DriverInterface $driver)
+    {
+        static::$displayNameDriver = $driver;
+    }
+
+    public static function setPasswordCheckers(array $checkers)
+    {
+        static::$passwordCheckers = $checkers;
     }
 
     /**
@@ -294,7 +318,7 @@ class User extends AbstractModel
     public function getAvatarUrlAttribute(string $value = null)
     {
         if ($value && strpos($value, '://') === false) {
-            return app(UrlGenerator::class)->to('forum')->path('assets/avatars/'.$value);
+            return resolve(Factory::class)->disk('flarum-avatars')->url($value);
         }
 
         return $value;
@@ -307,7 +331,7 @@ class User extends AbstractModel
      */
     public function getDisplayNameAttribute()
     {
-        return static::$dispatcher->until(new GetDisplayName($this)) ?: $this->username;
+        return static::$displayNameDriver->displayName($this);
     }
 
     /**
@@ -316,15 +340,21 @@ class User extends AbstractModel
      * @param string $password
      * @return bool
      */
-    public function checkPassword($password)
+    public function checkPassword(string $password)
     {
-        $valid = static::$dispatcher->until(new CheckingPassword($this, $password));
+        $valid = false;
 
-        if ($valid !== null) {
-            return $valid;
+        foreach (static::$passwordCheckers as $checker) {
+            $result = $checker($this, $password);
+
+            if ($result === false) {
+                return false;
+            } elseif ($result === true) {
+                $valid = true;
+            }
         }
 
-        return static::$hasher->check($password, $this->password);
+        return $valid;
     }
 
     /**
@@ -334,7 +364,7 @@ class User extends AbstractModel
      */
     public function activate()
     {
-        if ($this->is_email_confirmed !== true) {
+        if (! $this->is_email_confirmed) {
             $this->is_email_confirmed = true;
 
             $this->raise(new Activated($this));
@@ -355,11 +385,7 @@ class User extends AbstractModel
             return true;
         }
 
-        if (is_null($this->permissions)) {
-            $this->permissions = $this->getPermissions();
-        }
-
-        return in_array($permission, $this->permissions);
+        return in_array($permission, $this->getPermissions());
     }
 
     /**
@@ -375,17 +401,22 @@ class User extends AbstractModel
             return true;
         }
 
-        if (is_null($this->permissions)) {
-            $this->permissions = $this->getPermissions();
-        }
-
-        foreach ($this->permissions as $permission) {
+        foreach ($this->getPermissions() as $permission) {
             if (substr($permission, -strlen($match)) === $match) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function checkForDeprecatedPermissions($permission)
+    {
+        foreach (['viewDiscussions', 'viewUserList'] as $deprecated) {
+            if (strpos($permission, $deprecated) !== false) {
+                trigger_error('The `viewDiscussions` and `viewUserList` permissions have been renamed to `viewForum` and `searchUsers` respectively. Please use those instead.', E_USER_DEPRECATED);
+            }
+        }
     }
 
     /**
@@ -457,7 +488,7 @@ class User extends AbstractModel
             return $value['default'];
         }, static::$preferences);
 
-        $user = array_only((array) json_decode($value, true), array_keys(static::$preferences));
+        $user = $value !== null ? Arr::only((array) json_decode($value, true), array_keys(static::$preferences)) : [];
 
         return array_merge($defaults, $user);
     }
@@ -505,7 +536,7 @@ class User extends AbstractModel
      */
     public function getPreference($key, $default = null)
     {
-        return array_get($this->preferences, $key, $default);
+        return Arr::get($this->preferences, $key, $default);
     }
 
     /**
@@ -539,7 +570,11 @@ class User extends AbstractModel
      */
     public function updateLastSeen()
     {
-        $this->last_seen_at = Carbon::now();
+        $now = Carbon::now();
+
+        if ($this->last_seen_at === null || $this->last_seen_at->diffInSeconds($now) > User::LAST_SEEN_UPDATE_DIFF) {
+            $this->last_seen_at = $now;
+        }
 
         return $this;
     }
@@ -565,13 +600,67 @@ class User extends AbstractModel
     }
 
     /**
+     * Ensure the current user is allowed to do something.
+     *
+     * If the condition is not met, an exception will be thrown that signals the
+     * lack of permissions. This is about *authorization*, i.e. retrying such a
+     * request / operation without a change in permissions (or using another
+     * user account) is pointless.
+     *
+     * @param bool $condition
+     * @throws PermissionDeniedException
+     */
+    public function assertPermission($condition)
+    {
+        if (! $condition) {
+            throw new PermissionDeniedException;
+        }
+    }
+
+    /**
+     * Ensure the given actor is authenticated.
+     *
+     * This will throw an exception for guest users, signaling that
+     * *authorization* failed. Thus, they could retry the operation after
+     * logging in (or using other means of authentication).
+     *
+     * @throws NotAuthenticatedException
+     */
+    public function assertRegistered()
+    {
+        if ($this->isGuest()) {
+            throw new NotAuthenticatedException;
+        }
+    }
+
+    /**
+     * @param string $ability
+     * @param mixed $arguments
+     * @throws PermissionDeniedException
+     */
+    public function assertCan($ability, $arguments = null)
+    {
+        $this->assertPermission(
+            $this->can($ability, $arguments)
+        );
+    }
+
+    /**
+     * @throws PermissionDeniedException
+     */
+    public function assertAdmin()
+    {
+        $this->assertCan($this, 'administrate');
+    }
+
+    /**
      * Define the relationship with the user's posts.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function posts()
     {
-        return $this->hasMany('Flarum\Post\Post');
+        return $this->hasMany(Post::class);
     }
 
     /**
@@ -581,7 +670,7 @@ class User extends AbstractModel
      */
     public function discussions()
     {
-        return $this->hasMany('Flarum\Discussion\Discussion');
+        return $this->hasMany(Discussion::class);
     }
 
     /**
@@ -591,7 +680,7 @@ class User extends AbstractModel
      */
     public function read()
     {
-        return $this->belongsToMany('Flarum\Discussion\Discussion');
+        return $this->belongsToMany(Discussion::class);
     }
 
     /**
@@ -601,7 +690,12 @@ class User extends AbstractModel
      */
     public function groups()
     {
-        return $this->belongsToMany('Flarum\Group\Group');
+        return $this->belongsToMany(Group::class);
+    }
+
+    public function visibleGroups()
+    {
+        return $this->belongsToMany(Group::class)->where('is_hidden', false);
     }
 
     /**
@@ -611,7 +705,7 @@ class User extends AbstractModel
      */
     public function notifications()
     {
-        return $this->hasMany('Flarum\Notification\Notification');
+        return $this->hasMany(Notification::class);
     }
 
     /**
@@ -642,7 +736,9 @@ class User extends AbstractModel
             $groupIds = array_merge($groupIds, [Group::MEMBER_ID], $this->groups->pluck('id')->all());
         }
 
-        event(new PrepareUserGroups($this, $groupIds));
+        foreach (static::$groupProcessors as $processor) {
+            $groupIds = $processor($this, $groupIds);
+        }
 
         return Permission::whereIn('group_id', $groupIds);
     }
@@ -654,7 +750,11 @@ class User extends AbstractModel
      */
     public function getPermissions()
     {
-        return $this->permissions()->pluck('permission')->all();
+        if (is_null($this->permissions)) {
+            $this->permissions = $this->permissions()->pluck('permission')->all();
+        }
+
+        return $this->permissions;
     }
 
     /**
@@ -664,7 +764,7 @@ class User extends AbstractModel
      */
     public function accessTokens()
     {
-        return $this->hasMany('Flarum\Http\AccessToken');
+        return $this->hasMany(AccessToken::class);
     }
 
     /**
@@ -680,9 +780,9 @@ class User extends AbstractModel
      * @param array|mixed $arguments
      * @return bool
      */
-    public function can($ability, $arguments = [])
+    public function can($ability, $arguments = null)
     {
-        return static::$gate->forUser($this)->allows($ability, $arguments);
+        return static::$gate->allows($this, $ability, $arguments);
     }
 
     /**
@@ -690,31 +790,17 @@ class User extends AbstractModel
      * @param array|mixed $arguments
      * @return bool
      */
-    public function cannot($ability, $arguments = [])
+    public function cannot($ability, $arguments = null)
     {
         return ! $this->can($ability, $arguments);
-    }
-
-    /**
-     * @return Session
-     */
-    public function getSession()
-    {
-        return $this->session;
-    }
-
-    /**
-     * @param Session $session
-     */
-    public function setSession(Session $session)
-    {
-        $this->session = $session;
     }
 
     /**
      * Set the hasher with which to hash passwords.
      *
      * @param Hasher $hasher
+     *
+     * @internal
      */
     public static function setHasher(Hasher $hasher)
     {
@@ -727,10 +813,25 @@ class User extends AbstractModel
      * @param string $key
      * @param callable $transformer
      * @param mixed $default
+     *
+     * @internal
      */
-    public static function addPreference($key, callable $transformer = null, $default = null)
+    public static function registerPreference($key, callable $transformer = null, $default = null)
     {
         static::$preferences[$key] = compact('transformer', 'default');
+    }
+
+    /**
+     * Register a callback that processes a user's list of groups.
+     *
+     * @param callable $callback
+     * @return array $groupIds
+     *
+     * @internal
+     */
+    public static function addGroupProcessor($callback)
+    {
+        static::$groupProcessors[] = $callback;
     }
 
     /**
@@ -753,7 +854,10 @@ class User extends AbstractModel
      */
     public function refreshCommentCount()
     {
-        $this->comment_count = $this->posts()->count();
+        $this->comment_count = $this->posts()
+            ->where('type', 'comment')
+            ->where('is_private', false)
+            ->count();
 
         return $this;
     }
@@ -765,7 +869,9 @@ class User extends AbstractModel
      */
     public function refreshDiscussionCount()
     {
-        $this->discussion_count = $this->discussions()->count();
+        $this->discussion_count = $this->discussions()
+            ->where('is_private', false)
+            ->count();
 
         return $this;
     }

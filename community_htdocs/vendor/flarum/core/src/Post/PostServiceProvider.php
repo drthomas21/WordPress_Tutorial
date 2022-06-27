@@ -3,42 +3,61 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post;
 
-use Flarum\Event\ConfigurePostTypes;
+use DateTime;
+use Flarum\Formatter\Formatter;
 use Flarum\Foundation\AbstractServiceProvider;
+use Flarum\Http\RequestUtil;
+use Flarum\Post\Access\ScopePostVisibility;
 
 class PostServiceProvider extends AbstractServiceProvider
 {
     /**
      * {@inheritdoc}
      */
-    public function boot()
+    public function register()
     {
-        CommentPost::setFormatter($this->app->make('flarum.formatter'));
+        $this->container->extend('flarum.api.throttlers', function ($throttlers) {
+            $throttlers['postTimeout'] = function ($request) {
+                if (! in_array($request->getAttribute('routeName'), ['discussions.create', 'posts.create'])) {
+                    return;
+                }
 
-        $this->registerPostTypes();
+                $actor = RequestUtil::getActor($request);
 
-        $events = $this->app->make('events');
-        $events->subscribe('Flarum\Post\PostPolicy');
+                if ($actor->can('postWithoutThrottle')) {
+                    return false;
+                }
+
+                if (Post::where('user_id', $actor->id)->where('created_at', '>=', new DateTime('-10 seconds'))->exists()) {
+                    return true;
+                }
+            };
+
+            return $throttlers;
+        });
     }
 
-    public function registerPostTypes()
+    public function boot(Formatter $formatter)
+    {
+        CommentPost::setFormatter($formatter);
+
+        $this->setPostTypes();
+
+        Post::registerVisibilityScoper(new ScopePostVisibility(), 'view');
+    }
+
+    protected function setPostTypes()
     {
         $models = [
-            'Flarum\Post\CommentPost',
-            'Flarum\Post\DiscussionRenamedPost'
+            CommentPost::class,
+            DiscussionRenamedPost::class
         ];
-
-        $this->app->make('events')->fire(
-            new ConfigurePostTypes($models)
-        );
 
         foreach ($models as $model) {
             Post::setModel($model::$type, $model);

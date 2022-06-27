@@ -1,8 +1,9 @@
 .AppearancePage {
+  padding-bottom: 30px;
+
   @media @desktop-up {
     .container {
       max-width: 600px;
-      padding: 30px;
       margin: 0;
     }
   }
@@ -14,21 +15,21 @@
 .AppearancePage-colors-input {
   overflow: hidden;
 
-  input {
-    width: 49%;
-    float: left;
+  .Form-group {
+    display: inline-block;
+  }
 
-    &:first-child {
-      margin-right: 2%;
-    }
+  .Form-group:last-child {
+    margin-bottom: 24px !important;
+    margin-left: 10px;
   }
 }
-.AppearancePage-colors-input,
+
 .AppearancePage-colors .Checkbox {
   margin-bottom: 15px;
 }
 
-.EditCustomCssModal, .EditCustomHeaderModal {
+.TextareaCodeModal {
   textarea {
     font-family: monospace;
     line-height: 1;

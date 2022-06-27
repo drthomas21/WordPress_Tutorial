@@ -1,132 +1,129 @@
-import Page from './Page';
+import app from '../../admin/app';
 import Button from '../../common/components/Button';
-import Switch from '../../common/components/Switch';
 import EditCustomCssModal from './EditCustomCssModal';
 import EditCustomHeaderModal from './EditCustomHeaderModal';
 import EditCustomFooterModal from './EditCustomFooterModal';
 import UploadImageButton from './UploadImageButton';
-import saveSettings from '../utils/saveSettings';
+import AdminPage from './AdminPage';
+import ItemList from '../../common/utils/ItemList';
 
-export default class AppearancePage extends Page {
-  init() {
-    super.init();
-
-    this.primaryColor = m.prop(app.data.settings.theme_primary_color);
-    this.secondaryColor = m.prop(app.data.settings.theme_secondary_color);
-    this.darkMode = m.prop(app.data.settings.theme_dark_mode === '1');
-    this.coloredHeader = m.prop(app.data.settings.theme_colored_header === '1');
+export default class AppearancePage extends AdminPage {
+  headerInfo() {
+    return {
+      className: 'AppearancePage',
+      icon: 'fas fa-paint-brush',
+      title: app.translator.trans('core.admin.appearance.title'),
+      description: app.translator.trans('core.admin.appearance.description'),
+    };
   }
 
-  view() {
-    return (
-      <div className="AppearancePage">
-        <div className="container">
-          <form onsubmit={this.onsubmit.bind(this)}>
-            <fieldset className="AppearancePage-colors">
-              <legend>{app.translator.trans('core.admin.appearance.colors_heading')}</legend>
-              <div className="helpText">
-                {app.translator.trans('core.admin.appearance.colors_text')}
-              </div>
+  content() {
+    return [
+      <div className="Form">
+        <fieldset className="AppearancePage-colors">
+          <legend>{app.translator.trans('core.admin.appearance.colors_heading')}</legend>
+          {this.colorItems().toArray()}
+        </fieldset>
+      </div>,
 
-              <div className="AppearancePage-colors-input">
-                <input className="FormControl" type="text" placeholder="#aaaaaa" value={this.primaryColor()} onchange={m.withAttr('value', this.primaryColor)}/>
-                <input className="FormControl" type="text" placeholder="#aaaaaa" value={this.secondaryColor()} onchange={m.withAttr('value', this.secondaryColor)}/>
-              </div>
+      <fieldset>
+        <legend>{app.translator.trans('core.admin.appearance.logo_heading')}</legend>
+        <div className="helpText">{app.translator.trans('core.admin.appearance.logo_text')}</div>
+        <UploadImageButton name="logo" />
+      </fieldset>,
 
-              {Switch.component({
-                state: this.darkMode(),
-                children: app.translator.trans('core.admin.appearance.dark_mode_label'),
-                onchange: this.darkMode
-              })}
+      <fieldset>
+        <legend>{app.translator.trans('core.admin.appearance.favicon_heading')}</legend>
+        <div className="helpText">{app.translator.trans('core.admin.appearance.favicon_text')}</div>
+        <UploadImageButton name="favicon" />
+      </fieldset>,
 
-              {Switch.component({
-                state: this.coloredHeader(),
-                children: app.translator.trans('core.admin.appearance.colored_header_label'),
-                onchange: this.coloredHeader
-              })}
+      <fieldset>
+        <legend>{app.translator.trans('core.admin.appearance.custom_header_heading')}</legend>
+        <div className="helpText">{app.translator.trans('core.admin.appearance.custom_header_text')}</div>
+        {Button.component(
+          {
+            className: 'Button',
+            onclick: () => app.modal.show(EditCustomHeaderModal),
+          },
+          app.translator.trans('core.admin.appearance.edit_header_button')
+        )}
+      </fieldset>,
 
-              {Button.component({
-                className: 'Button Button--primary',
-                type: 'submit',
-                children: app.translator.trans('core.admin.appearance.submit_button'),
-                loading: this.loading
-              })}
-            </fieldset>
-          </form>
+      <fieldset>
+        <legend>{app.translator.trans('core.admin.appearance.custom_footer_heading')}</legend>
+        <div className="helpText">{app.translator.trans('core.admin.appearance.custom_footer_text')}</div>
+        {Button.component(
+          {
+            className: 'Button',
+            onclick: () => app.modal.show(EditCustomFooterModal),
+          },
+          app.translator.trans('core.admin.appearance.edit_footer_button')
+        )}
+      </fieldset>,
 
-          <fieldset>
-            <legend>{app.translator.trans('core.admin.appearance.logo_heading')}</legend>
-            <div className="helpText">
-              {app.translator.trans('core.admin.appearance.logo_text')}
-            </div>
-            <UploadImageButton name="logo"/>
-          </fieldset>
+      <fieldset>
+        <legend>{app.translator.trans('core.admin.appearance.custom_styles_heading')}</legend>
+        <div className="helpText">{app.translator.trans('core.admin.appearance.custom_styles_text')}</div>
+        {Button.component(
+          {
+            className: 'Button',
+            onclick: () => app.modal.show(EditCustomCssModal),
+          },
+          app.translator.trans('core.admin.appearance.edit_css_button')
+        )}
+      </fieldset>,
+    ];
+  }
 
-          <fieldset>
-            <legend>{app.translator.trans('core.admin.appearance.favicon_heading')}</legend>
-            <div className="helpText">
-              {app.translator.trans('core.admin.appearance.favicon_text')}
-            </div>
-            <UploadImageButton name="favicon"/>
-          </fieldset>
+  colorItems() {
+    const items = new ItemList();
 
-          <fieldset>
-            <legend>{app.translator.trans('core.admin.appearance.custom_header_heading')}</legend>
-            <div className="helpText">
-              {app.translator.trans('core.admin.appearance.custom_header_text')}
-            </div>
-            {Button.component({
-              className: 'Button',
-              children: app.translator.trans('core.admin.appearance.edit_header_button'),
-              onclick: () => app.modal.show(new EditCustomHeaderModal())
-            })}
-          </fieldset>
+    items.add('helpText', <div className="helpText">{app.translator.trans('core.admin.appearance.colors_text')}</div>, 80);
 
-          <fieldset>
-            <legend>{app.translator.trans('core.admin.appearance.custom_footer_heading')}</legend>
-            <div className="helpText">
-              {app.translator.trans('core.admin.appearance.custom_footer_text')}
-            </div>
-            {Button.component({
-              className: 'Button',
-              children: app.translator.trans('core.admin.appearance.edit_footer_button'),
-              onclick: () => app.modal.show(new EditCustomFooterModal())
-            })}
-          </fieldset>
-
-          <fieldset>
-            <legend>{app.translator.trans('core.admin.appearance.custom_styles_heading')}</legend>
-            <div className="helpText">
-              {app.translator.trans('core.admin.appearance.custom_styles_text')}
-            </div>
-            {Button.component({
-              className: 'Button',
-              children: app.translator.trans('core.admin.appearance.edit_css_button'),
-              onclick: () => app.modal.show(new EditCustomCssModal())
-            })}
-          </fieldset>
-        </div>
-      </div>
+    items.add(
+      'theme-colors',
+      <div className="AppearancePage-colors-input">
+        {this.buildSettingComponent({
+          type: 'color-preview',
+          setting: 'theme_primary_color',
+          placeholder: '#aaaaaa',
+        })}
+        {this.buildSettingComponent({
+          type: 'color-preview',
+          setting: 'theme_secondary_color',
+          placeholder: '#aaaaaa',
+        })}
+      </div>,
+      70
     );
+
+    items.add(
+      'dark-mode',
+      this.buildSettingComponent({
+        type: 'switch',
+        setting: 'theme_dark_mode',
+        label: app.translator.trans('core.admin.appearance.dark_mode_label'),
+      }),
+      60
+    );
+
+    items.add(
+      'colored-header',
+      this.buildSettingComponent({
+        type: 'switch',
+        setting: 'theme_colored_header',
+        label: app.translator.trans('core.admin.appearance.colored_header_label'),
+      }),
+      50
+    );
+
+    items.add('submit', this.submitButton(), 0);
+
+    return items;
   }
 
-  onsubmit(e) {
-    e.preventDefault();
-
-    const hex = /^#[0-9a-f]{3}([0-9a-f]{3})?$/i;
-
-    if (!hex.test(this.primaryColor()) || !hex.test(this.secondaryColor())) {
-      alert(app.translator.trans('core.admin.appearance.enter_hex_message'));
-      return;
-    }
-
-    this.loading = true;
-
-    saveSettings({
-      theme_primary_color: this.primaryColor(),
-      theme_secondary_color: this.secondaryColor(),
-      theme_dark_mode: this.darkMode(),
-      theme_colored_header: this.coloredHeader()
-    }).then(() => window.location.reload());
+  onsaved() {
+    window.location.reload();
   }
 }

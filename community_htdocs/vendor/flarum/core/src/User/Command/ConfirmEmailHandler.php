@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User\Command;
@@ -46,9 +44,7 @@ class ConfirmEmailHandler
         $user = $token->user;
         $user->changeEmail($token->email);
 
-        if (! $user->is_activated) {
-            $user->activate();
-        }
+        $user->activate();
 
         $user->save();
         $this->dispatchEventsFor($user);

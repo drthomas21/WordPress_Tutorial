@@ -3,33 +3,30 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Api\Controller;
 
+use Flarum\Http\RequestUtil;
 use Flarum\Tags\Tag;
-use Flarum\User\AssertPermissionTrait;
+use Illuminate\Support\Arr;
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Diactoros\Response\EmptyResponse;
 
 class OrderTagsController implements RequestHandlerInterface
 {
-    use AssertPermissionTrait;
-
     /**
      * {@inheritdoc}
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->assertAdmin($request->getAttribute('actor'));
+        RequestUtil::getActor($request)->assertAdmin();
 
-        $order = array_get($request->getParsedBody(), 'order');
+        $order = Arr::get($request->getParsedBody(), 'order');
 
         if ($order === null) {
             return new EmptyResponse(422);
@@ -41,7 +38,7 @@ class OrderTagsController implements RequestHandlerInterface
         ]);
 
         foreach ($order as $i => $parent) {
-            $parentId = array_get($parent, 'id');
+            $parentId = Arr::get($parent, 'id');
 
             Tag::where('id', $parentId)->update(['position' => $i]);
 

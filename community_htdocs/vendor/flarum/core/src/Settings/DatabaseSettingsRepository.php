@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Settings;
@@ -22,7 +20,7 @@ class DatabaseSettingsRepository implements SettingsRepositoryInterface
         $this->database = $connection;
     }
 
-    public function all()
+    public function all(): array
     {
         return $this->database->table('settings')->pluck('value', 'key')->all();
     }
@@ -45,8 +43,8 @@ class DatabaseSettingsRepository implements SettingsRepositoryInterface
         $query->$method(compact('key', 'value'));
     }
 
-    public function delete($keyLike)
+    public function delete($key)
     {
-        $this->database->table('settings')->where('key', 'like', $keyLike)->delete();
+        $this->database->table('settings')->where('key', $key)->delete();
     }
 }

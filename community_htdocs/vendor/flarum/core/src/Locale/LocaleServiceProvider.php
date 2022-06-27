@@ -3,60 +3,69 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Locale;
 
-use Flarum\Event\ConfigureLocales;
 use Flarum\Foundation\AbstractServiceProvider;
+use Flarum\Foundation\Paths;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Translation\Translator as TranslatorContract;
-use Symfony\Component\Translation\MessageSelector;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class LocaleServiceProvider extends AbstractServiceProvider
 {
     /**
      * {@inheritdoc}
      */
-    public function boot(Dispatcher $events)
-    {
-        $locales = $this->app->make('flarum.locales');
-
-        $locales->addLocale($this->getDefaultLocale(), 'Default');
-
-        $events->dispatch(new ConfigureLocales($locales));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function register()
     {
-        $this->app->singleton(LocaleManager::class);
-        $this->app->alias(LocaleManager::class, 'flarum.locales');
+        $this->container->singleton(LocaleManager::class, function (Container $container) {
+            $locales = new LocaleManager(
+                $container->make('translator'),
+                $this->getCacheDir($container)
+            );
 
-        $this->app->singleton('translator', function () {
-            $translator = new Translator($this->getDefaultLocale(), new MessageSelector());
+            $locales->addLocale($this->getDefaultLocale($container), 'Default');
+            $locales->addTranslations('en', __DIR__.'/../../locale/core.yml');
+            $locales->addTranslations('en', __DIR__.'/../../locale/validation.yml');
+
+            return $locales;
+        });
+
+        $this->container->alias(LocaleManager::class, 'flarum.locales');
+
+        $this->container->singleton('translator', function (Container $container) {
+            $translator = new Translator(
+                $this->getDefaultLocale($container),
+                null,
+                $this->getCacheDir($container),
+                $container['flarum.debug']
+            );
+
             $translator->setFallbackLocales(['en']);
             $translator->addLoader('prefixed_yaml', new PrefixedYamlFileLoader());
 
             return $translator;
         });
-        $this->app->alias('translator', Translator::class);
-        $this->app->alias('translator', TranslatorContract::class);
-        $this->app->alias('translator', TranslatorInterface::class);
+
+        $this->container->alias('translator', Translator::class);
+        $this->container->alias('translator', TranslatorContract::class);
+        $this->container->alias('translator', TranslatorInterface::class);
     }
 
-    private function getDefaultLocale(): string
+    private function getDefaultLocale(Container $container): string
     {
-        $repo = $this->app->make(SettingsRepositoryInterface::class);
+        $repo = $container->make(SettingsRepositoryInterface::class);
 
         return $repo->get('default_locale', 'en');
+    }
+
+    private function getCacheDir(Container $container): string
+    {
+        return $container[Paths::class]->storage.'/locale';
     }
 }

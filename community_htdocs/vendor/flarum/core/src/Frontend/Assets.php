@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend;
@@ -19,6 +17,8 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 
 /**
  * A factory class for creating frontend asset compilers.
+ *
+ * @internal
  */
 class Assets
 {
@@ -52,12 +52,28 @@ class Assets
      */
     protected $lessImportDirs;
 
-    public function __construct(string $name, Filesystem $assetsDir, string $cacheDir = null, array $lessImportDirs = null)
+    /**
+     * @var array
+     */
+    protected $lessImportOverrides = [];
+
+    /**
+     * @var array
+     */
+    protected $fileSourceOverrides = [];
+
+    /**
+     * @var array
+     */
+    protected $customFunctions = [];
+
+    public function __construct(string $name, Filesystem $assetsDir, string $cacheDir = null, array $lessImportDirs = null, array $customFunctions = [])
     {
         $this->name = $name;
         $this->assetsDir = $assetsDir;
         $this->cacheDir = $cacheDir;
         $this->lessImportDirs = $lessImportDirs;
+        $this->customFunctions = $customFunctions;
     }
 
     public function js($sources)
@@ -104,7 +120,7 @@ class Assets
 
     public function makeJs(): JsCompiler
     {
-        $compiler = new JsCompiler($this->assetsDir, $this->name.'.js');
+        $compiler = $this->makeJsCompiler($this->name.'.js');
 
         $this->populate($compiler, 'js');
 
@@ -122,7 +138,7 @@ class Assets
 
     public function makeLocaleJs(string $locale): JsCompiler
     {
-        $compiler = new JsCompiler($this->assetsDir, $this->name.'-'.$locale.'.js');
+        $compiler = $this->makeJsCompiler($this->name.'-'.$locale.'.js');
 
         $this->populate($compiler, 'localeJs', $locale);
 
@@ -138,6 +154,11 @@ class Assets
         return $compiler;
     }
 
+    protected function makeJsCompiler(string $filename)
+    {
+        return new JsCompiler($this->assetsDir, $filename);
+    }
+
     protected function makeLessCompiler(string $filename): LessCompiler
     {
         $compiler = new LessCompiler($this->assetsDir, $filename);
@@ -149,6 +170,16 @@ class Assets
         if ($this->lessImportDirs) {
             $compiler->setImportDirs($this->lessImportDirs);
         }
+
+        if ($this->lessImportOverrides) {
+            $compiler->setLessImportOverrides($this->lessImportOverrides);
+        }
+
+        if ($this->fileSourceOverrides) {
+            $compiler->setFileSourceOverrides($this->fileSourceOverrides);
+        }
+
+        $compiler->setCustomFunctions($this->customFunctions);
 
         return $compiler;
     }
@@ -191,5 +222,15 @@ class Assets
     public function setLessImportDirs(array $lessImportDirs)
     {
         $this->lessImportDirs = $lessImportDirs;
+    }
+
+    public function addLessImportOverrides(array $lessImportOverrides)
+    {
+        $this->lessImportOverrides = array_merge($this->lessImportOverrides, $lessImportOverrides);
+    }
+
+    public function addFileSourceOverrides(array $fileSourceOverrides)
+    {
+        $this->fileSourceOverrides = array_merge($this->fileSourceOverrides, $fileSourceOverrides);
     }
 }

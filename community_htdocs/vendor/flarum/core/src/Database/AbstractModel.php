@@ -3,19 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Database;
 
-use Flarum\Event\ConfigureModelDates;
-use Flarum\Event\ConfigureModelDefaultAttributes;
-use Flarum\Event\GetModelRelationship;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Arr;
 use LogicException;
 
 /**
@@ -49,19 +45,34 @@ abstract class AbstractModel extends Eloquent
     protected $afterDeleteCallbacks = [];
 
     /**
+     * @internal
+     */
+    public static $customRelations = [];
+
+    /**
+     * @internal
+     */
+    public static $dateAttributes = [];
+
+    /**
+     * @internal
+     */
+    public static $defaults = [];
+
+    /**
      * {@inheritdoc}
      */
     public static function boot()
     {
         parent::boot();
 
-        static::saved(function (AbstractModel $model) {
+        static::saved(function (self $model) {
             foreach ($model->releaseAfterSaveCallbacks() as $callback) {
                 $callback($model);
             }
         });
 
-        static::deleted(function (AbstractModel $model) {
+        static::deleted(function (self $model) {
             foreach ($model->releaseAfterDeleteCallbacks() as $callback) {
                 $callback($model);
             }
@@ -73,13 +84,15 @@ abstract class AbstractModel extends Eloquent
      */
     public function __construct(array $attributes = [])
     {
-        $defaults = [];
+        $this->attributes = [];
 
-        static::$dispatcher->dispatch(
-            new ConfigureModelDefaultAttributes($this, $defaults)
-        );
+        foreach (array_merge(array_reverse(class_parents($this)), [static::class]) as $class) {
+            $this->attributes = array_merge($this->attributes, Arr::get(static::$defaults, $class, []));
+        }
 
-        $this->attributes = $defaults;
+        $this->attributes = array_map(function ($item) {
+            return is_callable($item) ? $item($this) : $item;
+        }, $this->attributes);
 
         parent::__construct($attributes);
     }
@@ -91,19 +104,13 @@ abstract class AbstractModel extends Eloquent
      */
     public function getDates()
     {
-        static $dates = [];
+        $dates = $this->dates;
 
-        $class = get_class($this);
-
-        if (! isset($dates[$class])) {
-            static::$dispatcher->dispatch(
-                new ConfigureModelDates($this, $this->dates)
-            );
-
-            $dates[$class] = $this->dates;
+        foreach (array_merge(array_reverse(class_parents($this)), [static::class]) as $class) {
+            $dates = array_merge($dates, Arr::get(static::$dateAttributes, $class, []));
         }
 
-        return $dates[$class];
+        return $dates;
     }
 
     /**
@@ -141,9 +148,12 @@ abstract class AbstractModel extends Eloquent
      */
     protected function getCustomRelation($name)
     {
-        return static::$dispatcher->until(
-            new GetModelRelationship($this, $name)
-        );
+        foreach (array_merge([static::class], class_parents($this)) as $class) {
+            $relation = Arr::get(static::$customRelations, $class.".$name", null);
+            if (! is_null($relation)) {
+                return $relation($this);
+            }
+        }
     }
 
     /**

@@ -3,62 +3,80 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Notification;
 
-use Flarum\Event\ConfigureNotificationTypes;
 use Flarum\Foundation\AbstractServiceProvider;
 use Flarum\Notification\Blueprint\DiscussionRenamedBlueprint;
-use Flarum\User\User;
-use ReflectionClass;
+use Illuminate\Contracts\Container\Container;
 
 class NotificationServiceProvider extends AbstractServiceProvider
 {
     /**
      * {@inheritdoc}
      */
-    public function boot()
+    public function register()
     {
-        $this->registerNotificationTypes();
+        $this->container->singleton('flarum.notification.drivers', function () {
+            return [
+                'alert' => Driver\AlertNotificationDriver::class,
+                'email' => Driver\EmailNotificationDriver::class,
+            ];
+        });
+
+        $this->container->singleton('flarum.notification.blueprints', function () {
+            return [
+                DiscussionRenamedBlueprint::class => ['alert']
+            ];
+        });
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function boot(Container $container)
+    {
+        $this->setNotificationDrivers($container);
+        $this->setNotificationTypes($container);
+    }
+
+    /**
+     * Register notification drivers.
+     */
+    protected function setNotificationDrivers(Container $container)
+    {
+        foreach ($container->make('flarum.notification.drivers') as $driverName => $driver) {
+            NotificationSyncer::addNotificationDriver($driverName, $container->make($driver));
+        }
     }
 
     /**
      * Register notification types.
      */
-    public function registerNotificationTypes()
+    protected function setNotificationTypes(Container $container)
     {
-        $blueprints = [
-            DiscussionRenamedBlueprint::class => ['alert']
-        ];
+        $blueprints = $container->make('flarum.notification.blueprints');
 
-        $this->app->make('events')->fire(
-            new ConfigureNotificationTypes($blueprints)
+        foreach ($blueprints as $blueprint => $driversEnabledByDefault) {
+            $this->addType($blueprint, $driversEnabledByDefault);
+        }
+    }
+
+    protected function addType(string $blueprint, array $driversEnabledByDefault)
+    {
+        Notification::setSubjectModel(
+            $type = $blueprint::getType(),
+            $blueprint::getSubjectModel()
         );
 
-        foreach ($blueprints as $blueprint => $enabled) {
-            Notification::setSubjectModel(
-                $type = $blueprint::getType(),
-                $blueprint::getSubjectModel()
+        foreach (NotificationSyncer::getNotificationDrivers() as $driverName => $driver) {
+            $driver->registerType(
+                $blueprint,
+                $driversEnabledByDefault
             );
-
-            User::addPreference(
-                User::getNotificationPreferenceKey($type, 'alert'),
-                'boolval',
-                in_array('alert', $enabled)
-            );
-
-            if ((new ReflectionClass($blueprint))->implementsInterface(MailableInterface::class)) {
-                User::addPreference(
-                    User::getNotificationPreferenceKey($type, 'email'),
-                    'boolval',
-                    in_array('email', $enabled)
-                );
-            }
         }
     }
 }

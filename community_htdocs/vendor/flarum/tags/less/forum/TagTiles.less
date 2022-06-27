@@ -57,7 +57,7 @@
 
 .TagTile {
   position: relative;
-  background: @control-bg;
+  background: var(--tag-bg);
 
   &, a {
     color: @control-color;
@@ -85,6 +85,11 @@
 
   &:hover {
     background: fade(#000, 5%);
+  }
+  .icon {
+    font-size: 24px;
+    float: left;
+    margin-right: 10px;
   }
 }
 .TagTile-name {

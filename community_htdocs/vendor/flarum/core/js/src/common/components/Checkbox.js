@@ -1,44 +1,42 @@
 import Component from '../Component';
 import LoadingIndicator from './LoadingIndicator';
 import icon from '../helpers/icon';
+import classList from '../utils/classList';
+import withAttr from '../utils/withAttr';
 
 /**
  * The `Checkbox` component defines a checkbox input.
  *
- * ### Props
+ * ### Attrs
  *
  * - `state` Whether or not the checkbox is checked.
  * - `className` The class name for the root element.
  * - `disabled` Whether or not the checkbox is disabled.
+ * - `loading` Whether or not the checkbox is loading.
  * - `onchange` A callback to run when the checkbox is checked/unchecked.
  * - `children` A text label to display next to the checkbox.
  */
 export default class Checkbox extends Component {
-  init() {
-    /**
-     * Whether or not the checkbox's value is in the process of being saved.
-     *
-     * @type {Boolean}
-     * @public
-     */
-    this.loading = false;
-  }
+  view(vnode) {
+    // Sometimes, false is stored in the DB as '0'. This is a temporary
+    // conversion layer until a more robust settings encoding is introduced
+    if (this.attrs.state === '0') this.attrs.state = false;
 
-  view() {
-    let className = 'Checkbox ' + (this.props.state ? 'on' : 'off') + ' ' + (this.props.className || '');
-    if (this.loading) className += ' loading';
-    if (this.props.disabled) className += ' disabled';
+    const className = classList([
+      'Checkbox',
+      this.attrs.state ? 'on' : 'off',
+      this.attrs.className,
+      this.attrs.loading && 'loading',
+      this.attrs.disabled && 'disabled',
+    ]);
 
     return (
       <label className={className}>
-        <input type="checkbox"
-          checked={this.props.state}
-          disabled={this.props.disabled}
-          onchange={m.withAttr('checked', this.onchange.bind(this))}/>
-        <div className="Checkbox-display">
+        <input type="checkbox" checked={this.attrs.state} disabled={this.attrs.disabled} onchange={withAttr('checked', this.onchange.bind(this))} />
+        <div className="Checkbox-display" aria-hidden="true">
           {this.getDisplay()}
         </div>
-        {this.props.children}
+        {vnode.children}
       </label>
     );
   }
@@ -46,22 +44,20 @@ export default class Checkbox extends Component {
   /**
    * Get the template for the checkbox's display (tick/cross icon).
    *
-   * @return {*}
+   * @return {import('mithril').Children}
    * @protected
    */
   getDisplay() {
-    return this.loading
-      ? LoadingIndicator.component({size: 'tiny'})
-      : icon(this.props.state ? 'fas fa-check' : 'fas fa-times');
+    return this.attrs.loading ? <LoadingIndicator display="unset" size="small" /> : icon(this.attrs.state ? 'fas fa-check' : 'fas fa-times');
   }
 
   /**
    * Run a callback when the state of the checkbox is changed.
    *
-   * @param {Boolean} checked
+   * @param {boolean} checked
    * @protected
    */
   onchange(checked) {
-    if (this.props.onchange) this.props.onchange(checked, this);
+    if (this.attrs.onchange) this.attrs.onchange(checked, this);
   }
 }

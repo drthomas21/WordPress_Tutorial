@@ -1,71 +1,86 @@
-import { extend, override } from 'flarum/extend';
-import IndexPage from 'flarum/components/IndexPage';
-import DiscussionComposer from 'flarum/components/DiscussionComposer';
+import { extend, override } from 'flarum/common/extend';
+import IndexPage from 'flarum/forum/components/IndexPage';
+import DiscussionComposer from 'flarum/forum/components/DiscussionComposer';
+import classList from 'flarum/common/utils/classList';
 
 import TagDiscussionModal from './components/TagDiscussionModal';
 import tagsLabel from '../common/helpers/tagsLabel';
+import getSelectableTags from './utils/getSelectableTags';
 
-export default function() {
-  extend(IndexPage.prototype, 'newDiscussionAction', function(promise) {
-    const tag = app.store.getBy('tags', 'slug', this.params().tags);
+export default function () {
+  extend(IndexPage.prototype, 'newDiscussionAction', function (promise) {
+    // From `addTagFilter
+    const tag = this.currentTag();
 
     if (tag) {
       const parent = tag.parent();
       const tags = parent ? [parent, tag] : [tag];
-      promise.then(component => component.tags = tags);
+      promise.then(composer => composer.fields.tags = tags);
+    } else {
+      app.composer.fields.tags = [];
     }
   });
 
+
+  extend(DiscussionComposer.prototype, 'oninit', function () {
+    app.tagList.load(['parent']).then(() => m.redraw())
+  });
+
   // Add tag-selection abilities to the discussion composer.
-  DiscussionComposer.prototype.tags = [];
-  DiscussionComposer.prototype.chooseTags = function() {
-    app.modal.show(
-      new TagDiscussionModal({
-        selectedTags: this.tags.slice(0),
-        onsubmit: tags => {
-          this.tags = tags;
-          this.$('textarea').focus();
-        }
-      })
-    );
+  DiscussionComposer.prototype.chooseTags = function () {
+    const selectableTags = getSelectableTags();
+
+    if (!selectableTags.length) return;
+
+    app.modal.show(TagDiscussionModal, {
+      selectedTags: (this.composer.fields.tags || []).slice(0),
+      onsubmit: tags => {
+        this.composer.fields.tags = tags;
+        this.$('textarea').focus();
+      }
+    });
   };
 
   // Add a tag-selection menu to the discussion composer's header, after the
   // title.
-  extend(DiscussionComposer.prototype, 'headerItems', function(items) {
+  extend(DiscussionComposer.prototype, 'headerItems', function (items) {
+    const tags = this.composer.fields.tags || [];
+    const selectableTags = getSelectableTags();
+
     items.add('tags', (
-      <a className="DiscussionComposer-changeTags" onclick={this.chooseTags.bind(this)}>
-        {this.tags.length
-          ? tagsLabel(this.tags)
+      <a className={classList(['DiscussionComposer-changeTags', !selectableTags.length && 'disabled'])} onclick={this.chooseTags.bind(this)}>
+        {tags.length
+          ? tagsLabel(tags)
           : <span className="TagLabel untagged">{app.translator.trans('flarum-tags.forum.composer_discussion.choose_tags_link')}</span>}
       </a>
     ), 10);
   });
 
-  override(DiscussionComposer.prototype, 'onsubmit', function(original) {
-    const chosenTags = this.tags;
+  override(DiscussionComposer.prototype, 'onsubmit', function (original) {
+    const chosenTags = this.composer.fields.tags || [];
     const chosenPrimaryTags = chosenTags.filter(tag => tag.position() !== null && !tag.isChild());
     const chosenSecondaryTags = chosenTags.filter(tag => tag.position() === null);
-    if (!chosenTags.length
-      || (chosenPrimaryTags.length < app.forum.attribute('minPrimaryTags'))
-      || (chosenSecondaryTags.length < app.forum.attribute('minSecondaryTags'))) {
-      app.modal.show(
-        new TagDiscussionModal({
+    const selectableTags = getSelectableTags();
+
+    if ((!chosenTags.length
+          || (chosenPrimaryTags.length < app.forum.attribute('minPrimaryTags'))
+          || (chosenSecondaryTags.length < app.forum.attribute('minSecondaryTags'))
+        ) && selectableTags.length) {
+      app.modal.show(TagDiscussionModal, {
           selectedTags: chosenTags,
           onsubmit: tags => {
-            this.tags = tags;
+            this.composer.fields.tags = tags;
             original();
           }
-        })
-      );
+        });
     } else {
       original();
     }
   });
 
   // Add the selected tags as data to submit to the server.
-  extend(DiscussionComposer.prototype, 'data', function(data) {
+  extend(DiscussionComposer.prototype, 'data', function (data) {
     data.relationships = data.relationships || {};
-    data.relationships.tags = this.tags;
+    data.relationships.tags = this.composer.fields.tags;
   });
 }

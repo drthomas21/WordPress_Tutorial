@@ -3,17 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Http\Middleware;
 
 use Flarum\Api\ApiKey;
 use Flarum\Http\AccessToken;
+use Flarum\Http\RequestUtil;
 use Flarum\User\User;
+use Illuminate\Support\Str;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface as Middleware;
@@ -29,7 +29,7 @@ class AuthenticateWithHeader implements Middleware
 
         $parts = explode(';', $headerLine);
 
-        if (isset($parts[0]) && starts_with($parts[0], self::TOKEN_PREFIX)) {
+        if (isset($parts[0]) && Str::startsWith($parts[0], self::TOKEN_PREFIX)) {
             $id = substr($parts[0], strlen(self::TOKEN_PREFIX));
 
             if ($key = ApiKey::where('key', $id)->first()) {
@@ -39,15 +39,18 @@ class AuthenticateWithHeader implements Middleware
                 $actor = $key->user ?? $this->getUser($userId);
 
                 $request = $request->withAttribute('apiKey', $key);
-                $request = $request->withAttribute('bypassFloodgate', true);
-            } elseif ($token = AccessToken::find($id)) {
-                $token->touch();
+                $request = $request->withAttribute('bypassThrottling', true);
+            } elseif ($token = AccessToken::findValid($id)) {
+                $token->touch($request);
 
                 $actor = $token->user;
             }
 
             if (isset($actor)) {
-                $request = $request->withAttribute('actor', $actor);
+                $actor->updateLastSeen()->save();
+
+                $request = RequestUtil::withActor($request, $actor);
+                $request = $request->withAttribute('bypassCsrfToken', true);
                 $request = $request->withoutAttribute('session');
             }
         }

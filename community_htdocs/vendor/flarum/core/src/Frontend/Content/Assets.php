@@ -3,36 +3,38 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend\Content;
 
-use Flarum\Foundation\Application;
+use Flarum\Foundation\Config;
 use Flarum\Frontend\Compiler\CompilerInterface;
 use Flarum\Frontend\Document;
+use Illuminate\Contracts\Container\Container;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class Assets
 {
-    protected $app;
+    protected $container;
+    protected $config;
 
     /**
      * @var \Flarum\Frontend\Assets
      */
     protected $assets;
 
-    public function __construct(Application $app)
+    public function __construct(Container $container, Config $config)
     {
-        $this->app = $app;
+        $this->container = $container;
+        $this->config = $config;
     }
 
     public function forFrontend(string $name)
     {
-        $this->assets = $this->app->make('flarum.assets.'.$name);
+        $this->assets = $this->container->make('flarum.assets.'.$name);
 
         return $this;
     }
@@ -46,18 +48,24 @@ class Assets
             'css' => [$this->assets->makeCss(), $this->assets->makeLocaleCss($locale)]
         ];
 
-        if ($this->app->inDebugMode()) {
-            $this->commit(array_flatten($compilers));
+        if ($this->config->inDebugMode()) {
+            $this->forceCommit(Arr::flatten($compilers));
         }
 
         $document->js = array_merge($document->js, $this->getUrls($compilers['js']));
         $document->css = array_merge($document->css, $this->getUrls($compilers['css']));
     }
 
-    private function commit(array $compilers)
+    /**
+     * Force compilation of assets when in debug mode.
+     *
+     * @param array $compilers
+     */
+    private function forceCommit(array $compilers)
     {
+        /** @var CompilerInterface $compiler */
         foreach ($compilers as $compiler) {
-            $compiler->commit();
+            $compiler->commit(true);
         }
     }
 

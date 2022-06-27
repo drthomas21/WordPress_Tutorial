@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation\Console;
@@ -14,6 +12,12 @@ namespace Flarum\Foundation\Console;
 use Flarum\Console\AbstractCommand;
 use Flarum\Extension\ExtensionManager;
 use Flarum\Foundation\Application;
+use Flarum\Foundation\Config;
+use Flarum\Settings\SettingsRepositoryInterface;
+use Illuminate\Contracts\Queue\Queue;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Str;
+use PDO;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 
@@ -25,18 +29,36 @@ class InfoCommand extends AbstractCommand
     protected $extensions;
 
     /**
-     * @var array
+     * @var Config
      */
     protected $config;
 
     /**
-     * @param ExtensionManager $extensions
-     * @param array $config
+     * @var SettingsRepositoryInterface
      */
-    public function __construct(ExtensionManager $extensions, array $config)
-    {
+    protected $settings;
+
+    /**
+     * @var ConnectionInterface
+     */
+    protected $db;
+    /**
+     * @var Queue
+     */
+    private $queue;
+
+    public function __construct(
+        ExtensionManager $extensions,
+        Config $config,
+        SettingsRepositoryInterface $settings,
+        ConnectionInterface $db,
+        Queue $queue
+    ) {
         $this->extensions = $extensions;
         $this->config = $config;
+        $this->settings = $settings;
+        $this->db = $db;
+        $this->queue = $queue;
 
         parent::__construct();
     }
@@ -60,17 +82,21 @@ class InfoCommand extends AbstractCommand
         $this->output->writeln("<info>Flarum core $coreVersion</info>");
 
         $this->output->writeln('<info>PHP version:</info> '.PHP_VERSION);
+        $this->output->writeln('<info>MySQL version:</info> '.$this->identifyDatabaseVersion());
 
         $phpExtensions = implode(', ', get_loaded_extensions());
         $this->output->writeln("<info>Loaded extensions:</info> $phpExtensions");
 
         $this->getExtensionTable()->render();
 
-        $this->output->writeln('<info>Base URL:</info> '.$this->config['url']);
+        $this->output->writeln('<info>Base URL:</info> '.$this->config->url());
         $this->output->writeln('<info>Installation path:</info> '.getcwd());
-        $this->output->writeln('<info>Debug mode:</info> '.($this->config['debug'] ? 'ON' : 'off'));
+        $this->output->writeln('<info>Queue driver:</info> '.$this->identifyQueueDriver());
+        $this->output->writeln('<info>Mail driver:</info> '.$this->settings->get('mail_driver', 'unknown'));
+        $this->output->writeln('<info>Debug mode:</info> '.($this->config->inDebugMode() ? '<error>ON</error>' : 'off'));
 
-        if ($this->config['debug']) {
+        if ($this->config->inDebugMode()) {
+            $this->output->writeln('');
             $this->error(
                 "Don't forget to turn off debug mode! It should never be turned on in a production system."
             );
@@ -103,12 +129,8 @@ class InfoCommand extends AbstractCommand
      *
      * If the package seems to be a Git version, we extract the currently
      * checked out commit using the command line.
-     *
-     * @param string $path
-     * @param string $fallback
-     * @return string
      */
-    private function findPackageVersion($path, $fallback = null)
+    private function findPackageVersion(string $path, string $fallback = null): ?string
     {
         if (file_exists("$path/.git")) {
             $cwd = getcwd();
@@ -126,5 +148,24 @@ class InfoCommand extends AbstractCommand
         }
 
         return $fallback;
+    }
+
+    private function identifyQueueDriver(): string
+    {
+        // Get class name
+        $queue = get_class($this->queue);
+        // Drop the namespace
+        $queue = Str::afterLast($queue, '\\');
+        // Lowercase the class name
+        $queue = strtolower($queue);
+        // Drop everything like queue SyncQueue, RedisQueue
+        $queue = str_replace('queue', null, $queue);
+
+        return $queue;
+    }
+
+    private function identifyDatabaseVersion(): string
+    {
+        return $this->db->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
     }
 }

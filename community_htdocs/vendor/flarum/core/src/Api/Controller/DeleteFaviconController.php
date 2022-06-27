@@ -3,43 +3,39 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Foundation\Application;
+use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Flarum\User\AssertPermissionTrait;
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\Filesystem;
+use Illuminate\Contracts\Filesystem\Factory;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ServerRequestInterface;
-use Zend\Diactoros\Response\EmptyResponse;
 
 class DeleteFaviconController extends AbstractDeleteController
 {
-    use AssertPermissionTrait;
-
     /**
      * @var SettingsRepositoryInterface
      */
     protected $settings;
 
     /**
-     * @var Application
+     * @var Filesystem
      */
-    protected $app;
+    protected $uploadDir;
 
     /**
      * @param SettingsRepositoryInterface $settings
+     * @param Factory $filesystemFactory
      */
-    public function __construct(SettingsRepositoryInterface $settings, Application $app)
+    public function __construct(SettingsRepositoryInterface $settings, Factory $filesystemFactory)
     {
         $this->settings = $settings;
-        $this->app = $app;
+        $this->uploadDir = $filesystemFactory->disk('flarum-assets');
     }
 
     /**
@@ -47,16 +43,14 @@ class DeleteFaviconController extends AbstractDeleteController
      */
     protected function delete(ServerRequestInterface $request)
     {
-        $this->assertAdmin($request->getAttribute('actor'));
+        RequestUtil::getActor($request)->assertAdmin();
 
         $path = $this->settings->get('favicon_path');
 
         $this->settings->set('favicon_path', null);
 
-        $uploadDir = new Filesystem(new Local($this->app->publicPath().'/assets'));
-
-        if ($uploadDir->has($path)) {
-            $uploadDir->delete($path);
+        if ($this->uploadDir->exists($path)) {
+            $this->uploadDir->delete($path);
         }
 
         return new EmptyResponse(204);

@@ -3,17 +3,14 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User\Command;
 
 use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Flarum\User\AssertPermissionTrait;
 use Flarum\User\AvatarUploader;
 use Flarum\User\Event\RegisteringFromProvider;
 use Flarum\User\Event\Saving;
@@ -22,13 +19,16 @@ use Flarum\User\RegistrationToken;
 use Flarum\User\User;
 use Flarum\User\UserValidator;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Factory;
 use Illuminate\Validation\ValidationException;
 use Intervention\Image\ImageManager;
+use InvalidArgumentException;
 
 class RegisterUserHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var SettingsRepositoryInterface
@@ -38,12 +38,21 @@ class RegisterUserHandler
     /**
      * @var UserValidator
      */
-    protected $validator;
+    protected $userValidator;
 
     /**
      * @var AvatarUploader
      */
     protected $avatarUploader;
+    /**
+     * @var Factory
+     */
+    private $validator;
+
+    /**
+     * @var ImageManager
+     */
+    protected $imageManager;
 
     /**
      * @param Dispatcher $events
@@ -51,12 +60,14 @@ class RegisterUserHandler
      * @param UserValidator $validator
      * @param AvatarUploader $avatarUploader
      */
-    public function __construct(Dispatcher $events, SettingsRepositoryInterface $settings, UserValidator $validator, AvatarUploader $avatarUploader)
+    public function __construct(Dispatcher $events, SettingsRepositoryInterface $settings, UserValidator $userValidator, AvatarUploader $avatarUploader, Factory $validator, ImageManager $imageManager)
     {
         $this->events = $events;
         $this->settings = $settings;
-        $this->validator = $validator;
+        $this->userValidator = $userValidator;
         $this->avatarUploader = $avatarUploader;
+        $this->validator = $validator;
+        $this->imageManager = $imageManager;
     }
 
     /**
@@ -72,22 +83,22 @@ class RegisterUserHandler
         $data = $command->data;
 
         if (! $this->settings->get('allow_sign_up')) {
-            $this->assertAdmin($actor);
+            $actor->assertAdmin();
         }
 
-        $password = array_get($data, 'attributes.password');
+        $password = Arr::get($data, 'attributes.password');
 
         // If a valid authentication token was provided as an attribute,
         // then we won't require the user to choose a password.
         if (isset($data['attributes']['token'])) {
             $token = RegistrationToken::validOrFail($data['attributes']['token']);
 
-            $password = $password ?: str_random(20);
+            $password = $password ?: Str::random(20);
         }
 
         $user = User::register(
-            array_get($data, 'attributes.username'),
-            array_get($data, 'attributes.email'),
+            Arr::get($data, 'attributes.username'),
+            Arr::get($data, 'attributes.email'),
             $password
         );
 
@@ -95,7 +106,7 @@ class RegisterUserHandler
             $this->applyToken($user, $token);
         }
 
-        if ($actor->isAdmin() && array_get($data, 'attributes.isEmailConfirmed')) {
+        if ($actor->isAdmin() && Arr::get($data, 'attributes.isEmailConfirmed')) {
             $user->activate();
         }
 
@@ -103,7 +114,7 @@ class RegisterUserHandler
             new Saving($user, $actor, $data)
         );
 
-        $this->validator->assertValid(array_merge($user->getAttributes(), compact('password')));
+        $this->userValidator->assertValid(array_merge($user->getAttributes(), compact('password')));
 
         $user->save();
 
@@ -136,9 +147,26 @@ class RegisterUserHandler
         );
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     private function uploadAvatarFromUrl(User $user, string $url)
     {
-        $image = (new ImageManager)->make($url);
+        $urlValidator = $this->validator->make(compact('url'), [
+            'url' => 'required|active_url',
+        ]);
+
+        if ($urlValidator->fails()) {
+            throw new InvalidArgumentException('Provided avatar URL must be a valid URI.', 503);
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        if (! in_array($scheme, ['http', 'https'])) {
+            throw new InvalidArgumentException("Provided avatar URL must have scheme http or https. Scheme provided was $scheme.", 503);
+        }
+
+        $image = $this->imageManager->make($url);
 
         $this->avatarUploader->upload($user, $image);
     }

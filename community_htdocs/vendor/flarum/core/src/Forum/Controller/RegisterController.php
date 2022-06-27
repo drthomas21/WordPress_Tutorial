@@ -3,16 +3,14 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Controller;
 
 use Flarum\Api\Client;
-use Flarum\Api\Controller\CreateUserController;
+use Flarum\Http\RememberAccessToken;
 use Flarum\Http\Rememberer;
 use Flarum\Http\SessionAuthenticator;
 use Psr\Http\Message\ResponseInterface;
@@ -53,21 +51,21 @@ class RegisterController implements RequestHandlerInterface
      */
     public function handle(Request $request): ResponseInterface
     {
-        $controller = CreateUserController::class;
-        $actor = $request->getAttribute('actor');
-        $body = ['data' => ['attributes' => $request->getParsedBody()]];
+        $params = ['data' => ['attributes' => $request->getParsedBody()]];
 
-        $response = $this->api->send($controller, $actor, [], $body);
+        $response = $this->api->withParentRequest($request)->withBody($params)->post('/users');
 
         $body = json_decode($response->getBody());
 
         if (isset($body->data)) {
             $userId = $body->data->id;
 
-            $session = $request->getAttribute('session');
-            $this->authenticator->logIn($session, $userId);
+            $token = RememberAccessToken::generate($userId);
 
-            $response = $this->rememberer->rememberUser($response, $userId);
+            $session = $request->getAttribute('session');
+            $this->authenticator->logIn($session, $token);
+
+            $response = $this->rememberer->remember($response, $token);
         }
 
         return $response;

@@ -3,15 +3,13 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation;
 
-use InvalidArgumentException;
+use Illuminate\Support\Arr;
 use RuntimeException;
 
 class Site
@@ -22,29 +20,30 @@ class Site
      */
     public static function fromPaths(array $paths)
     {
-        if (! isset($paths['base'], $paths['public'], $paths['storage'])) {
-            throw new InvalidArgumentException(
-                'Paths array requires keys base, public and storage'
-            );
-        }
+        $paths = new Paths($paths);
 
         date_default_timezone_set('UTC');
 
-        if (static::hasConfigFile($paths['base'])) {
-            return (
-                new InstalledSite($paths, static::loadConfig($paths['base']))
-            )->extendWith(static::loadExtenders($paths['base']));
-        } else {
-            return new UninstalledSite($paths);
+        if (! static::hasConfigFile($paths->base)) {
+            // Instantiate site instance for new installations,
+            // fallback to localhost for validation of Config for instance in CLI.
+            return new UninstalledSite(
+                $paths,
+                Arr::get($_SERVER, 'REQUEST_URI', 'http://localhost')
+            );
         }
+
+        return (
+            new InstalledSite($paths, static::loadConfig($paths->base))
+        )->extendWith(static::loadExtenders($paths->base));
     }
 
-    private static function hasConfigFile($basePath)
+    protected static function hasConfigFile($basePath)
     {
         return file_exists("$basePath/config.php");
     }
 
-    private static function loadConfig($basePath): array
+    protected static function loadConfig($basePath): Config
     {
         $config = include "$basePath/config.php";
 
@@ -52,10 +51,10 @@ class Site
             throw new RuntimeException('config.php should return an array');
         }
 
-        return $config;
+        return new Config($config);
     }
 
-    private static function loadExtenders($basePath): array
+    protected static function loadExtenders($basePath): array
     {
         $extenderFile = "$basePath/extend.php";
 
@@ -63,6 +62,12 @@ class Site
             return [];
         }
 
-        return array_flatten(require $extenderFile);
+        $extenders = require $extenderFile;
+
+        if (! is_array($extenders)) {
+            return [];
+        }
+
+        return Arr::flatten($extenders);
     }
 }

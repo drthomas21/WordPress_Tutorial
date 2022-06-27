@@ -3,21 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Command;
 
+use Flarum\Tags\Event\Deleting;
 use Flarum\Tags\TagRepository;
-use Flarum\User\AssertPermissionTrait;
 
 class DeleteTagHandler
 {
-    use AssertPermissionTrait;
-
     /**
      * @var TagRepository
      */
@@ -42,7 +38,9 @@ class DeleteTagHandler
 
         $tag = $this->tags->findOrFail($command->tagId, $actor);
 
-        $this->assertCan($actor, 'delete', $tag);
+        $actor->assertCan('delete', $tag);
+
+        event(new Deleting($tag, $actor));
 
         $tag->delete();
 

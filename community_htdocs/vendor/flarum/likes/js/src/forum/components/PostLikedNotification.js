@@ -1,5 +1,6 @@
-import Notification from 'flarum/components/Notification';
-import { truncate } from 'flarum/utils/string';
+import app from 'flarum/forum/app';
+import Notification from 'flarum/forum/components/Notification';
+import { truncate } from 'flarum/common/utils/string';
 
 export default class PostLikedNotification extends Notification {
   icon() {
@@ -7,17 +8,17 @@ export default class PostLikedNotification extends Notification {
   }
 
   href() {
-    return app.route.post(this.props.notification.subject());
+    return app.route.post(this.attrs.notification.subject());
   }
 
   content() {
-    const notification = this.props.notification;
+    const notification = this.attrs.notification;
     const user = notification.fromUser();
 
-    return app.translator.transChoice('flarum-likes.forum.notifications.post_liked_text', 1, {user});
+    return app.translator.trans('flarum-likes.forum.notifications.post_liked_text', { user, count: 1 });
   }
 
   excerpt() {
-    return truncate(this.props.notification.subject().contentPlain(), 200);
+    return truncate(this.attrs.notification.subject().contentPlain(), 200);
   }
 }

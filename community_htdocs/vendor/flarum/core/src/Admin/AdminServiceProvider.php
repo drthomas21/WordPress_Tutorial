@@ -3,17 +3,20 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Admin;
 
-use Flarum\Event\ConfigureMiddleware;
+use Flarum\Extension\Event\Disabled;
+use Flarum\Extension\Event\Enabled;
 use Flarum\Foundation\AbstractServiceProvider;
-use Flarum\Foundation\Application;
+use Flarum\Foundation\ErrorHandling\Registry;
+use Flarum\Foundation\ErrorHandling\Reporter;
+use Flarum\Foundation\ErrorHandling\ViewFormatter;
+use Flarum\Foundation\ErrorHandling\WhoopsFormatter;
+use Flarum\Foundation\Event\ClearingCache;
 use Flarum\Frontend\AddLocaleAssets;
 use Flarum\Frontend\AddTranslations;
 use Flarum\Frontend\Compiler\Source\SourceCollector;
@@ -22,7 +25,10 @@ use Flarum\Http\Middleware as HttpMiddleware;
 use Flarum\Http\RouteCollection;
 use Flarum\Http\RouteHandlerFactory;
 use Flarum\Http\UrlGenerator;
-use Zend\Stratigility\MiddlewarePipe;
+use Flarum\Locale\LocaleManager;
+use Flarum\Settings\Event\Saved;
+use Illuminate\Contracts\Container\Container;
+use Laminas\Stratigility\MiddlewarePipe;
 
 class AdminServiceProvider extends AbstractServiceProvider
 {
@@ -31,43 +37,62 @@ class AdminServiceProvider extends AbstractServiceProvider
      */
     public function register()
     {
-        $this->app->extend(UrlGenerator::class, function (UrlGenerator $url) {
-            return $url->addCollection('admin', $this->app->make('flarum.admin.routes'), 'admin');
+        $this->container->extend(UrlGenerator::class, function (UrlGenerator $url, Container $container) {
+            return $url->addCollection('admin', $container->make('flarum.admin.routes'), 'admin');
         });
 
-        $this->app->singleton('flarum.admin.routes', function () {
-            return new RouteCollection;
+        $this->container->singleton('flarum.admin.routes', function () {
+            $routes = new RouteCollection;
+            $this->populateRoutes($routes);
+
+            return $routes;
         });
 
-        $this->app->singleton('flarum.admin.middleware', function (Application $app) {
+        $this->container->singleton('flarum.admin.middleware', function () {
+            return [
+                HttpMiddleware\InjectActorReference::class,
+                'flarum.admin.error_handler',
+                HttpMiddleware\ParseJsonBody::class,
+                HttpMiddleware\StartSession::class,
+                HttpMiddleware\RememberFromCookie::class,
+                HttpMiddleware\AuthenticateWithSession::class,
+                HttpMiddleware\SetLocale::class,
+                'flarum.admin.route_resolver',
+                HttpMiddleware\CheckCsrfToken::class,
+                Middleware\RequireAdministrateAbility::class,
+                HttpMiddleware\ReferrerPolicyHeader::class,
+                HttpMiddleware\ContentTypeOptionsHeader::class,
+                Middleware\DisableBrowserCache::class,
+            ];
+        });
+
+        $this->container->bind('flarum.admin.error_handler', function (Container $container) {
+            return new HttpMiddleware\HandleErrors(
+                $container->make(Registry::class),
+                $container['flarum.config']->inDebugMode() ? $container->make(WhoopsFormatter::class) : $container->make(ViewFormatter::class),
+                $container->tagged(Reporter::class)
+            );
+        });
+
+        $this->container->bind('flarum.admin.route_resolver', function (Container $container) {
+            return new HttpMiddleware\ResolveRoute($container->make('flarum.admin.routes'));
+        });
+
+        $this->container->singleton('flarum.admin.handler', function (Container $container) {
             $pipe = new MiddlewarePipe;
 
-            // All requests should first be piped through our global error handler
-            if ($app->inDebugMode()) {
-                $pipe->pipe($app->make(HttpMiddleware\HandleErrorsWithWhoops::class));
-            } else {
-                $pipe->pipe($app->make(HttpMiddleware\HandleErrorsWithView::class));
+            foreach ($container->make('flarum.admin.middleware') as $middleware) {
+                $pipe->pipe($container->make($middleware));
             }
 
-            $pipe->pipe($app->make(HttpMiddleware\ParseJsonBody::class));
-            $pipe->pipe($app->make(HttpMiddleware\StartSession::class));
-            $pipe->pipe($app->make(HttpMiddleware\RememberFromCookie::class));
-            $pipe->pipe($app->make(HttpMiddleware\AuthenticateWithSession::class));
-            $pipe->pipe($app->make(HttpMiddleware\SetLocale::class));
-            $pipe->pipe($app->make(Middleware\RequireAdministrateAbility::class));
-
-            event(new ConfigureMiddleware($pipe, 'admin'));
+            $pipe->pipe(new HttpMiddleware\ExecuteRoute());
 
             return $pipe;
         });
 
-        $this->app->afterResolving('flarum.admin.middleware', function (MiddlewarePipe $pipe) {
-            $pipe->pipe(new HttpMiddleware\DispatchRoute($this->app->make('flarum.admin.routes')));
-        });
-
-        $this->app->bind('flarum.assets.admin', function () {
+        $this->container->bind('flarum.assets.admin', function (Container $container) {
             /** @var \Flarum\Frontend\Assets $assets */
-            $assets = $this->app->make('flarum.assets.factory')('admin');
+            $assets = $container->make('flarum.assets.factory')('admin');
 
             $assets->js(function (SourceCollector $sources) {
                 $sources->addFile(__DIR__.'/../../js/dist/admin.js');
@@ -77,17 +102,17 @@ class AdminServiceProvider extends AbstractServiceProvider
                 $sources->addFile(__DIR__.'/../../less/admin.less');
             });
 
-            $this->app->make(AddTranslations::class)->forFrontend('admin')->to($assets);
-            $this->app->make(AddLocaleAssets::class)->to($assets);
+            $container->make(AddTranslations::class)->forFrontend('admin')->to($assets);
+            $container->make(AddLocaleAssets::class)->to($assets);
 
             return $assets;
         });
 
-        $this->app->bind('flarum.frontend.admin', function () {
+        $this->container->bind('flarum.frontend.admin', function (Container $container) {
             /** @var \Flarum\Frontend\Frontend $frontend */
-            $frontend = $this->app->make('flarum.frontend.factory')('admin');
+            $frontend = $container->make('flarum.frontend.factory')('admin');
 
-            $frontend->content($this->app->make(Content\AdminPayload::class));
+            $frontend->content($container->make(Content\AdminPayload::class));
 
             return $frontend;
         });
@@ -98,15 +123,30 @@ class AdminServiceProvider extends AbstractServiceProvider
      */
     public function boot()
     {
-        $this->populateRoutes($this->app->make('flarum.admin.routes'));
-
         $this->loadViewsFrom(__DIR__.'/../../views', 'flarum.admin');
 
-        $this->app->make('events')->subscribe(
-            new RecompileFrontendAssets(
-                $this->app->make('flarum.assets.admin'),
-                $this->app->make('flarum.locales')
-            )
+        $events = $this->container->make('events');
+
+        $events->listen(
+            [Enabled::class, Disabled::class, ClearingCache::class],
+            function () {
+                $recompile = new RecompileFrontendAssets(
+                    $this->container->make('flarum.assets.admin'),
+                    $this->container->make(LocaleManager::class)
+                );
+                $recompile->flush();
+            }
+        );
+
+        $events->listen(
+            Saved::class,
+            function (Saved $event) {
+                $recompile = new RecompileFrontendAssets(
+                    $this->container->make('flarum.assets.admin'),
+                    $this->container->make(LocaleManager::class)
+                );
+                $recompile->whenSettingsSaved($event);
+            }
         );
     }
 
@@ -115,7 +155,7 @@ class AdminServiceProvider extends AbstractServiceProvider
      */
     protected function populateRoutes(RouteCollection $routes)
     {
-        $factory = $this->app->make(RouteHandlerFactory::class);
+        $factory = $this->container->make(RouteHandlerFactory::class);
 
         $callback = include __DIR__.'/routes.php';
         $callback($routes, $factory);

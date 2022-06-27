@@ -3,13 +3,10 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
-use Flarum\Database\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
 
@@ -31,20 +28,16 @@ return [
             })
             ->update(['from_user_id' => null]);
 
-        $schema->table('notifications', function (Blueprint $table) use ($schema) {
+        $schema->table('notifications', function (Blueprint $table) {
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('from_user_id')->references('id')->on('users')->onDelete('set null');
-
-            Migration::fixIndexNames($schema, $table);
         });
     },
 
     'down' => function (Builder $schema) {
-        $schema->table('notifications', function (Blueprint $table) use ($schema) {
+        $schema->table('notifications', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
             $table->dropForeign(['from_user_id']);
-
-            Migration::fixIndexNames($schema, $table);
         });
     }
 ];

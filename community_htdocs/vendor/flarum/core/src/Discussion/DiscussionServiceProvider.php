@@ -3,27 +3,28 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Discussion;
 
+use Flarum\Discussion\Access\ScopeDiscussionVisibility;
+use Flarum\Discussion\Event\Renamed;
 use Flarum\Foundation\AbstractServiceProvider;
+use Illuminate\Contracts\Events\Dispatcher;
 
 class DiscussionServiceProvider extends AbstractServiceProvider
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function boot()
+    public function boot(Dispatcher $events)
     {
-        $events = $this->app->make('events');
-
         $events->subscribe(DiscussionMetadataUpdater::class);
-        $events->subscribe(DiscussionPolicy::class);
-        $events->subscribe(DiscussionRenamedLogger::class);
+
+        $events->listen(
+            Renamed::class,
+            DiscussionRenamedLogger::class
+        );
+
+        Discussion::registerVisibilityScoper(new ScopeDiscussionVisibility(), 'view');
     }
 }

@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Group\Command;
@@ -16,14 +14,13 @@ use Flarum\Group\Event\Saving;
 use Flarum\Group\Group;
 use Flarum\Group\GroupRepository;
 use Flarum\Group\GroupValidator;
-use Flarum\User\AssertPermissionTrait;
 use Flarum\User\Exception\PermissionDeniedException;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 
 class EditGroupHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\Group\GroupRepository
@@ -59,9 +56,9 @@ class EditGroupHandler
 
         $group = $this->groups->findOrFail($command->groupId, $actor);
 
-        $this->assertCan($actor, 'edit', $group);
+        $actor->assertCan('edit', $group);
 
-        $attributes = array_get($data, 'attributes', []);
+        $attributes = Arr::get($data, 'attributes', []);
 
         if (isset($attributes['nameSingular']) && isset($attributes['namePlural'])) {
             $group->rename($attributes['nameSingular'], $attributes['namePlural']);
@@ -73,6 +70,10 @@ class EditGroupHandler
 
         if (isset($attributes['icon'])) {
             $group->icon = $attributes['icon'];
+        }
+
+        if (isset($attributes['isHidden'])) {
+            $group->is_hidden = $attributes['isHidden'];
         }
 
         $this->events->dispatch(

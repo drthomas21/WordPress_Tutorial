@@ -3,13 +3,10 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
-use Flarum\Database\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
 
@@ -27,20 +24,16 @@ return [
             })
             ->delete();
 
-        $schema->table('group_user', function (Blueprint $table) use ($schema) {
+        $schema->table('group_user', function (Blueprint $table) {
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('group_id')->references('id')->on('groups')->onDelete('cascade');
-
-            Migration::fixIndexNames($schema, $table);
         });
     },
 
     'down' => function (Builder $schema) {
-        $schema->table('group_user', function (Blueprint $table) use ($schema) {
+        $schema->table('group_user', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
             $table->dropForeign(['group_id']);
-
-            Migration::fixIndexNames($schema, $table);
         });
     }
 ];

@@ -3,18 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation\Console;
 
 use Flarum\Console\AbstractCommand;
-use Flarum\Foundation\Application;
 use Flarum\Foundation\Event\ClearingCache;
+use Flarum\Foundation\Paths;
 use Illuminate\Contracts\Cache\Store;
+use Illuminate\Contracts\Events\Dispatcher;
 
 class CacheClearCommand extends AbstractCommand
 {
@@ -24,18 +23,24 @@ class CacheClearCommand extends AbstractCommand
     protected $cache;
 
     /**
-     * @var Application
+     * @var Dispatcher
      */
-    protected $app;
+    protected $events;
+
+    /**
+     * @var Paths
+     */
+    protected $paths;
 
     /**
      * @param Store $cache
-     * @param Application $app
+     * @param Paths $paths
      */
-    public function __construct(Store $cache, Application $app)
+    public function __construct(Store $cache, Dispatcher $events, Paths $paths)
     {
         $this->cache = $cache;
-        $this->app = $app;
+        $this->events = $events;
+        $this->paths = $paths;
 
         parent::__construct();
     }
@@ -57,12 +62,19 @@ class CacheClearCommand extends AbstractCommand
     {
         $this->info('Clearing the cache...');
 
-        $this->cache->flush();
+        $succeeded = $this->cache->flush();
 
-        $storagePath = $this->app->storagePath();
+        if (! $succeeded) {
+            $this->error('Could not clear contents of `storage/cache`. Please adjust file permissions and try again. This can frequently be fixed by clearing cache via the `Tools` dropdown on the Administration Dashboard page.');
+
+            return 1;
+        }
+
+        $storagePath = $this->paths->storage;
         array_map('unlink', glob($storagePath.'/formatter/*'));
         array_map('unlink', glob($storagePath.'/locale/*'));
+        array_map('unlink', glob($storagePath.'/views/*'));
 
-        event(new ClearingCache);
+        $this->events->dispatch(new ClearingCache);
     }
 }

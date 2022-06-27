@@ -3,24 +3,20 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Flags\Command;
 
+use Flarum\Flags\Event\Deleting;
 use Flarum\Flags\Event\FlagsWillBeDeleted;
 use Flarum\Flags\Flag;
 use Flarum\Post\PostRepository;
-use Flarum\User\AssertPermissionTrait;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Events\Dispatcher;
 
 class DeleteFlagsHandler
 {
-    use AssertPermissionTrait;
-
     /**
      * @var PostRepository
      */
@@ -51,9 +47,14 @@ class DeleteFlagsHandler
 
         $post = $this->posts->findOrFail($command->postId, $actor);
 
-        $this->assertCan($actor, 'viewFlags', $post->discussion);
+        $actor->assertCan('viewFlags', $post->discussion);
 
+        // Deprecated, removed v2.0
         $this->events->dispatch(new FlagsWillBeDeleted($post, $actor, $command->data));
+
+        foreach ($post->flags as $flag) {
+            $this->events->dispatch(new Deleting($flag, $actor, $command->data));
+        }
 
         $post->flags()->delete();
 

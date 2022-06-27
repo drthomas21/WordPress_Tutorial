@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post\Command;
@@ -16,13 +14,12 @@ use Flarum\Post\CommentPost;
 use Flarum\Post\Event\Saving;
 use Flarum\Post\PostRepository;
 use Flarum\Post\PostValidator;
-use Flarum\User\AssertPermissionTrait;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 
 class EditPostHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\Post\PostRepository
@@ -59,16 +56,16 @@ class EditPostHandler
         $post = $this->posts->findOrFail($command->postId, $actor);
 
         if ($post instanceof CommentPost) {
-            $attributes = array_get($data, 'attributes', []);
+            $attributes = Arr::get($data, 'attributes', []);
 
             if (isset($attributes['content'])) {
-                $this->assertCan($actor, 'edit', $post);
+                $actor->assertCan('edit', $post);
 
                 $post->revise($attributes['content'], $actor);
             }
 
             if (isset($attributes['isHidden'])) {
-                $this->assertCan($actor, 'hide', $post);
+                $actor->assertCan('hide', $post);
 
                 if ($attributes['isHidden']) {
                     $post->hide($actor);

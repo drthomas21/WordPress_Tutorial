@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Http;
@@ -31,22 +29,18 @@ class Rememberer
         $this->cookie = $cookie;
     }
 
-    public function remember(ResponseInterface $response, AccessToken $token)
+    /**
+     * Sets the remember cookie on a response.
+     * @param ResponseInterface $response
+     * @param RememberAccessToken $token The remember token to set on the response.
+     * @return ResponseInterface
+     */
+    public function remember(ResponseInterface $response, RememberAccessToken $token)
     {
-        $token->lifetime_seconds = 5 * 365 * 24 * 60 * 60; // 5 years
-        $token->save();
-
         return FigResponseCookies::set(
             $response,
-            $this->cookie->make(self::COOKIE_NAME, $token->token, $token->lifetime_seconds)
+            $this->cookie->make(self::COOKIE_NAME, $token->token, RememberAccessToken::rememberCookieLifeTime())
         );
-    }
-
-    public function rememberUser(ResponseInterface $response, $userId)
-    {
-        $token = AccessToken::generate($userId);
-
-        return $this->remember($response, $token);
     }
 
     public function forget(ResponseInterface $response)

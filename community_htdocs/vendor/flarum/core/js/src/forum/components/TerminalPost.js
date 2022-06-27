@@ -1,3 +1,4 @@
+import app from '../../forum/app';
 import Component from '../../common/Component';
 import humanTime from '../../common/helpers/humanTime';
 import icon from '../../common/helpers/icon';
@@ -5,15 +6,15 @@ import icon from '../../common/helpers/icon';
 /**
  * Displays information about a the first or last post in a discussion.
  *
- * ### Props
+ * ### Attrs
  *
  * - `discussion`
  * - `lastPost`
  */
 export default class TerminalPost extends Component {
   view() {
-    const discussion = this.props.discussion;
-    const lastPost = this.props.lastPost && discussion.replyCount();
+    const discussion = this.attrs.discussion;
+    const lastPost = this.attrs.lastPost && discussion.replyCount();
 
     const user = discussion[lastPost ? 'lastPostedUser' : 'user']();
     const time = discussion[lastPost ? 'lastPostedAt' : 'createdAt']();
@@ -23,7 +24,7 @@ export default class TerminalPost extends Component {
         {lastPost ? icon('fas fa-reply') : ''}{' '}
         {app.translator.trans('core.forum.discussion_list.' + (lastPost ? 'replied' : 'started') + '_text', {
           user,
-          ago: humanTime(time)
+          ago: humanTime(time),
         })}
       </span>
     );

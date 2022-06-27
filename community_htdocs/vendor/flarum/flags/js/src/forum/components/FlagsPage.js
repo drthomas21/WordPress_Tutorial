@@ -1,3 +1,4 @@
+import app from 'flarum/forum/app';
 import Page from 'flarum/components/Page';
 
 import FlagList from './FlagList';
@@ -7,18 +8,21 @@ import FlagList from './FlagList';
  * used on mobile devices where the flags dropdown is within the drawer.
  */
 export default class FlagsPage extends Page {
-  init() {
-    super.init();
+  oninit(vnode) {
+    super.oninit(vnode);
 
     app.history.push('flags');
 
-    this.list = new FlagList();
-    this.list.load();
+    app.flags.load();
 
     this.bodyClass = 'App--flags';
   }
 
   view() {
-    return <div className="FlagsPage">{this.list.render()}</div>;
+    return (
+      <div className="FlagsPage">
+        <FlagList state={app.flags}></FlagList>
+      </div>
+    );
   }
 }

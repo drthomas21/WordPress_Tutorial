@@ -3,18 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Api\Serializer\PostSerializer;
-use Flarum\Event\ConfigurePostsQuery;
+use Flarum\Http\RequestUtil;
+use Flarum\Http\UrlGenerator;
+use Flarum\Post\Filter\PostFilterer;
 use Flarum\Post\PostRepository;
-use Illuminate\Database\Eloquent\Builder;
+use Flarum\Query\QueryCriteria;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 use Tobscure\JsonApi\Exception\InvalidParameterException;
@@ -40,19 +41,33 @@ class ListPostsController extends AbstractListController
     /**
      * {@inheritdoc}
      */
-    public $sortFields = ['createdAt'];
+    public $sortFields = ['number', 'createdAt'];
 
     /**
-     * @var \Flarum\Post\PostRepository
+     * @var PostFilterer
+     */
+    protected $filterer;
+
+    /**
+     * @var PostRepository
      */
     protected $posts;
 
     /**
-     * @param \Flarum\Post\PostRepository $posts
+     * @var UrlGenerator
      */
-    public function __construct(PostRepository $posts)
+    protected $url;
+
+    /**
+     * @param PostFilterer $filterer
+     * @param PostRepository $posts
+     * @param UrlGenerator $url
+     */
+    public function __construct(PostFilterer $filterer, PostRepository $posts, UrlGenerator $url)
     {
+        $this->filterer = $filterer;
         $this->posts = $posts;
+        $this->url = $url;
     }
 
     /**
@@ -60,19 +75,42 @@ class ListPostsController extends AbstractListController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $actor = $request->getAttribute('actor');
-        $filter = $this->extractFilter($request);
+        $actor = RequestUtil::getActor($request);
+
+        $filters = $this->extractFilter($request);
+        $sort = $this->extractSort($request);
+        $sortIsDefault = $this->sortIsDefault($request);
+
+        $limit = $this->extractLimit($request);
+        $offset = $this->extractOffset($request);
         $include = $this->extractInclude($request);
 
-        if ($postIds = array_get($filter, 'id')) {
-            $postIds = explode(',', $postIds);
-        } else {
-            $postIds = $this->getPostIds($request);
+        $results = $this->filterer->filter(new QueryCriteria($actor, $filters, $sort, $sortIsDefault), $limit, $offset);
+
+        $document->addPaginationLinks(
+            $this->url->to('api')->route('posts.index'),
+            $request->getQueryParams(),
+            $offset,
+            $limit,
+            $results->areMoreResults() ? null : 0
+        );
+
+        // Eager load discussion for use in the policies,
+        // eager loading does not affect the JSON response,
+        // the response only includes relations included in the request.
+        if (! in_array('discussion', $include)) {
+            $include[] = 'discussion';
         }
 
-        $posts = $this->posts->findByIds($postIds, $actor);
+        if (in_array('user', $include)) {
+            $include[] = 'user.groups';
+        }
 
-        return $posts->load($include);
+        $results = $results->getResults();
+
+        $this->loadRelations($results, $include, $request);
+
+        return $results;
     }
 
     /**
@@ -80,13 +118,13 @@ class ListPostsController extends AbstractListController
      */
     protected function extractOffset(ServerRequestInterface $request)
     {
-        $actor = $request->getAttribute('actor');
+        $actor = RequestUtil::getActor($request);
         $queryParams = $request->getQueryParams();
         $sort = $this->extractSort($request);
         $limit = $this->extractLimit($request);
         $filter = $this->extractFilter($request);
 
-        if (($near = array_get($queryParams, 'page.near')) > 1) {
+        if (($near = Arr::get($queryParams, 'page.near')) > 1) {
             if (count($filter) > 1 || ! isset($filter['discussion']) || $sort) {
                 throw new InvalidParameterException(
                     'You can only use page[near] with filter[discussion] and the default sort order'
@@ -99,55 +137,5 @@ class ListPostsController extends AbstractListController
         }
 
         return parent::extractOffset($request);
-    }
-
-    /**
-     * @param ServerRequestInterface $request
-     * @return array
-     * @throws InvalidParameterException
-     */
-    private function getPostIds(ServerRequestInterface $request)
-    {
-        $filter = $this->extractFilter($request);
-        $sort = $this->extractSort($request);
-        $limit = $this->extractLimit($request);
-        $offset = $this->extractOffset($request);
-
-        $query = $this->posts->query();
-
-        $this->applyFilters($query, $filter);
-
-        $query->skip($offset)->take($limit);
-
-        foreach ((array) $sort as $field => $order) {
-            $query->orderBy(snake_case($field), $order);
-        }
-
-        return $query->pluck('id')->all();
-    }
-
-    /**
-     * @param Builder $query
-     * @param array $filter
-     */
-    private function applyFilters(Builder $query, array $filter)
-    {
-        if ($discussionId = array_get($filter, 'discussion')) {
-            $query->where('discussion_id', $discussionId);
-        }
-
-        if ($number = array_get($filter, 'number')) {
-            $query->where('number', $number);
-        }
-
-        if ($userId = array_get($filter, 'user')) {
-            $query->where('user_id', $userId);
-        }
-
-        if ($type = array_get($filter, 'type')) {
-            $query->where('type', $type);
-        }
-
-        event(new ConfigurePostsQuery($query, $filter));
     }
 }

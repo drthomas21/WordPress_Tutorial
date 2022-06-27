@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post\Command;
@@ -18,13 +16,12 @@ use Flarum\Notification\NotificationSyncer;
 use Flarum\Post\CommentPost;
 use Flarum\Post\Event\Saving;
 use Flarum\Post\PostValidator;
-use Flarum\User\AssertPermissionTrait;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 
 class PostReplyHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var DiscussionRepository
@@ -77,8 +74,8 @@ class PostReplyHandler
 
         // If this is the first post in the discussion, it's technically not a
         // "reply", so we won't check for that permission.
-        if ($discussion->post_number_index > 0) {
-            $this->assertCan($actor, 'reply', $discussion);
+        if ($discussion->first_post_id !== null) {
+            $actor->assertCan('reply', $discussion);
         }
 
         // Create a new Post entity, persist it, and dispatch domain events.
@@ -86,12 +83,12 @@ class PostReplyHandler
         // opportunity to alter the post entity based on data in the command.
         $post = CommentPost::reply(
             $discussion->id,
-            array_get($command->data, 'attributes.content'),
+            Arr::get($command->data, 'attributes.content'),
             $actor->id,
             $command->ipAddress
         );
 
-        if ($actor->isAdmin() && ($time = array_get($command->data, 'attributes.createdAt'))) {
+        if ($actor->isAdmin() && ($time = Arr::get($command->data, 'attributes.createdAt'))) {
             $post->created_at = new Carbon($time);
         }
 

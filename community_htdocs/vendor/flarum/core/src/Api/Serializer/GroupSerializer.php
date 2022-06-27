@@ -3,17 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Serializer;
 
 use Flarum\Group\Group;
 use InvalidArgumentException;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class GroupSerializer extends AbstractSerializer
 {
@@ -54,6 +52,7 @@ class GroupSerializer extends AbstractSerializer
             'namePlural'   => $this->translateGroupName($group->name_plural),
             'color'        => $group->color,
             'icon'         => $group->icon,
+            'isHidden'     => $group->is_hidden
         ];
     }
 

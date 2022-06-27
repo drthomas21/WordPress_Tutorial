@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Http\Middleware;
@@ -16,6 +14,7 @@ use Flarum\Http\CookieFactory;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Session\Store;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface as Middleware;
@@ -67,21 +66,21 @@ class StartSession implements Middleware
         return $this->withSessionCookie($response, $session);
     }
 
-    private function makeSession(Request $request)
+    private function makeSession(Request $request): Session
     {
         return new Store(
             $this->config['cookie'],
             $this->handler,
-            array_get($request->getCookieParams(), $this->cookie->getName($this->config['cookie']))
+            Arr::get($request->getCookieParams(), $this->cookie->getName($this->config['cookie']))
         );
     }
 
-    private function withCsrfTokenHeader(Response $response, Session $session)
+    private function withCsrfTokenHeader(Response $response, Session $session): Response
     {
         return $response->withHeader('X-CSRF-Token', $session->token());
     }
 
-    private function withSessionCookie(Response $response, Session $session)
+    private function withSessionCookie(Response $response, Session $session): Response
     {
         return FigResponseCookies::set(
             $response,
@@ -89,7 +88,7 @@ class StartSession implements Middleware
         );
     }
 
-    private function getSessionLifetimeInSeconds()
+    private function getSessionLifetimeInSeconds(): int
     {
         return $this->config['lifetime'] * 60;
     }

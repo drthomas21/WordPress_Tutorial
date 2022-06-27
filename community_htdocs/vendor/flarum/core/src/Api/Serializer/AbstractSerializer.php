@@ -3,23 +3,21 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Serializer;
 
 use Closure;
 use DateTime;
-use Flarum\Api\Event\Serializing;
-use Flarum\Event\GetApiRelationship;
+use Flarum\Http\RequestUtil;
 use Flarum\User\User;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use LogicException;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobscure\JsonApi\AbstractSerializer as BaseAbstractSerializer;
 use Tobscure\JsonApi\Collection;
 use Tobscure\JsonApi\Relationship;
@@ -29,14 +27,14 @@ use Tobscure\JsonApi\SerializerInterface;
 abstract class AbstractSerializer extends BaseAbstractSerializer
 {
     /**
+     * @var Request
+     */
+    protected $request;
+
+    /**
      * @var User
      */
     protected $actor;
-
-    /**
-     * @var Dispatcher
-     */
-    protected static $dispatcher;
 
     /**
      * @var Container
@@ -44,19 +42,38 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
     protected static $container;
 
     /**
+     * @var callable[]
+     */
+    protected static $attributeMutators = [];
+
+    /**
+     * @var array
+     */
+    protected static $customRelations = [];
+
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
+        $this->actor = RequestUtil::getActor($request);
+    }
+
+    /**
      * @return User
      */
     public function getActor()
     {
         return $this->actor;
-    }
-
-    /**
-     * @param User $actor
-     */
-    public function setActor(User $actor)
-    {
-        $this->actor = $actor;
     }
 
     /**
@@ -70,9 +87,16 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
 
         $attributes = $this->getDefaultAttributes($model);
 
-        static::$dispatcher->dispatch(
-            new Serializing($this, $model, $attributes)
-        );
+        foreach (array_reverse(array_merge([static::class], class_parents($this))) as $class) {
+            if (isset(static::$attributeMutators[$class])) {
+                foreach (static::$attributeMutators[$class] as $callback) {
+                    $attributes = array_merge(
+                        $attributes,
+                        $callback($this, $model, $attributes)
+                    );
+                }
+            }
+        }
 
         return $attributes;
     }
@@ -89,7 +113,7 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
      * @param DateTime|null $date
      * @return string|null
      */
-    protected function formatDate(DateTime $date = null)
+    public function formatDate(DateTime $date = null)
     {
         if ($date) {
             return $date->format(DateTime::RFC3339);
@@ -117,17 +141,21 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
      */
     protected function getCustomRelationship($model, $name)
     {
-        $relationship = static::$dispatcher->until(
-            new GetApiRelationship($this, $name, $model)
-        );
+        foreach (array_merge([static::class], class_parents($this)) as $class) {
+            $callback = Arr::get(static::$customRelations, "$class.$name");
 
-        if ($relationship && ! ($relationship instanceof Relationship)) {
-            throw new LogicException(
-                'GetApiRelationship handler must return an instance of '.Relationship::class
-            );
+            if (is_callable($callback)) {
+                $relationship = $callback($this, $model);
+
+                if (isset($relationship) && ! ($relationship instanceof Relationship)) {
+                    throw new LogicException(
+                        'GetApiRelationship handler must return an instance of '.Relationship::class
+                    );
+                }
+
+                return $relationship;
+            }
         }
-
-        return $relationship;
     }
 
     /**
@@ -231,25 +259,9 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
     {
         $serializer = static::$container->make($class);
 
-        $serializer->setActor($this->actor);
+        $serializer->setRequest($this->request);
 
         return $serializer;
-    }
-
-    /**
-     * @return Dispatcher
-     */
-    public static function getEventDispatcher()
-    {
-        return static::$dispatcher;
-    }
-
-    /**
-     * @param Dispatcher $dispatcher
-     */
-    public static function setEventDispatcher(Dispatcher $dispatcher)
-    {
-        static::$dispatcher = $dispatcher;
     }
 
     /**
@@ -262,9 +274,38 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
 
     /**
      * @param Container $container
+     *
+     * @internal
      */
     public static function setContainer(Container $container)
     {
         static::$container = $container;
+    }
+
+    /**
+     * @param string $serializerClass
+     * @param callable $callback
+     *
+     * @internal
+     */
+    public static function addAttributeMutator(string $serializerClass, callable $callback): void
+    {
+        if (! isset(static::$attributeMutators[$serializerClass])) {
+            static::$attributeMutators[$serializerClass] = [];
+        }
+
+        static::$attributeMutators[$serializerClass][] = $callback;
+    }
+
+    /**
+     * @param string $serializerClass
+     * @param string $relation
+     * @param callable $callback
+     *
+     * @internal
+     */
+    public static function setRelationship(string $serializerClass, string $relation, callable $callback): void
+    {
+        static::$customRelations[$serializerClass][$relation] = $callback;
     }
 }

@@ -3,18 +3,18 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Suspend\Notification;
 
 use Flarum\Notification\Blueprint\BlueprintInterface;
+use Flarum\Notification\MailableInterface;
 use Flarum\User\User;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-class UserSuspendedBlueprint implements BlueprintInterface
+class UserSuspendedBlueprint implements BlueprintInterface, MailableInterface
 {
     /**
      * @var User
@@ -22,18 +22,11 @@ class UserSuspendedBlueprint implements BlueprintInterface
     public $user;
 
     /**
-     * @var User
-     */
-    public $actor;
-
-    /**
      * @param User $user
-     * @param User $actor
      */
-    public function __construct(User $user, User $actor)
+    public function __construct(User $user)
     {
         $this->user = $user;
-        $this->actor = $actor;
     }
 
     /**
@@ -49,7 +42,7 @@ class UserSuspendedBlueprint implements BlueprintInterface
      */
     public function getFromUser()
     {
-        return $this->actor;
+        return null;
     }
 
     /**
@@ -74,5 +67,21 @@ class UserSuspendedBlueprint implements BlueprintInterface
     public static function getSubjectModel()
     {
         return User::class;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getEmailView()
+    {
+        return ['text' => 'flarum-suspend::emails.suspended'];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getEmailSubject(TranslatorInterface $translator)
+    {
+        return $translator->trans('flarum-suspend.email.suspended.subject');
     }
 }

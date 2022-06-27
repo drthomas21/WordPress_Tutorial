@@ -3,20 +3,36 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Serializer;
 
+use Exception;
+use Flarum\Foundation\ErrorHandling\LogReporter;
 use Flarum\Post\CommentPost;
 use Flarum\Post\Post;
 use InvalidArgumentException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class BasicPostSerializer extends AbstractSerializer
 {
+    /**
+     * @var LogReporter
+     */
+    protected $log;
+
+    /**
+     * @var TranslatorInterface
+     */
+    protected $translator;
+
+    public function __construct(LogReporter $log, TranslatorInterface $translator)
+    {
+        $this->log = $log;
+        $this->translator = $translator;
+    }
     /**
      * {@inheritdoc}
      */
@@ -37,14 +53,20 @@ class BasicPostSerializer extends AbstractSerializer
         }
 
         $attributes = [
-            'id'          => (int) $post->id,
             'number'      => (int) $post->number,
             'createdAt'   => $this->formatDate($post->created_at),
             'contentType' => $post->type
         ];
 
         if ($post instanceof CommentPost) {
-            $attributes['contentHtml'] = $post->content_html;
+            try {
+                $attributes['contentHtml'] = $post->formatContent($this->request);
+                $attributes['renderFailed'] = false;
+            } catch (Exception $e) {
+                $attributes['contentHtml'] = $this->translator->trans('core.lib.error.render_failed_message');
+                $this->log->report($e);
+                $attributes['renderFailed'] = true;
+            }
         } else {
             $attributes['content'] = $post->content;
         }

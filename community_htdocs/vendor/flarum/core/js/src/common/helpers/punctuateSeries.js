@@ -1,3 +1,5 @@
+import app from '../../common/app';
+
 /**
  * The `punctuateSeries` helper formats a list of strings (e.g. names) to read
  * fluently in the application's locale.
@@ -6,14 +8,14 @@
  * punctuateSeries(['Toby', 'Franz', 'Dominion']) // Toby, Franz, and Dominion
  * ```
  *
- * @param {Array} items
- * @return {VirtualElement}
+ * @param {import('mithril').Children[]} items
+ * @return {import('mithril').Children}')}
  */
 export default function punctuateSeries(items) {
   if (items.length === 2) {
     return app.translator.trans('core.lib.series.two_text', {
       first: items[0],
-      second: items[1]
+      second: items[1],
     });
   } else if (items.length >= 3) {
     // If there are three or more items, we will join all but the first and
@@ -27,7 +29,7 @@ export default function punctuateSeries(items) {
     return app.translator.trans('core.lib.series.three_text', {
       first: items[0],
       second,
-      third: items[items.length - 1]
+      third: items[items.length - 1],
     });
   }
 

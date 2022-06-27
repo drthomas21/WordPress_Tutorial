@@ -3,14 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend\Compiler\Source;
 
+/**
+ * @internal
+ */
 class SourceCollector
 {
     /**
@@ -22,9 +23,9 @@ class SourceCollector
      * @param string $file
      * @return $this
      */
-    public function addFile(string $file)
+    public function addFile(string $file, string $extensionId = null)
     {
-        $this->sources[] = new FileSource($file);
+        $this->sources[] = new FileSource($file, $extensionId);
 
         return $this;
     }

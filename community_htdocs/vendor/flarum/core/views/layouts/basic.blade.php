@@ -1,9 +1,8 @@
-{{-- TODO: Change below to @php when Laravel is upgraded --}}
-<?php
+@php
   $primaryColor = $settings->get('theme_primary_color', '#000');
-?>
+@endphp
 
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -86,7 +85,6 @@
       .form-control:focus,
       .form-control.focus {
          border-color: {{ $primaryColor }};
-         outline: none;
       }
       .errors {
         color: #d83e3e;

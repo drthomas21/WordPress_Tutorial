@@ -1,21 +1,45 @@
-import Page from 'flarum/components/Page';
-import IndexPage from 'flarum/components/IndexPage';
-import listItems from 'flarum/helpers/listItems';
-import humanTime from 'flarum/helpers/humanTime';
+import Page from 'flarum/common/components/Page';
+import IndexPage from 'flarum/forum/components/IndexPage';
+import Link from 'flarum/common/components/Link';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import listItems from 'flarum/common/helpers/listItems';
+import humanTime from 'flarum/common/helpers/humanTime';
 
+import tagIcon from '../../common/helpers/tagIcon';
 import tagLabel from '../../common/helpers/tagLabel';
 import sortTags from '../../common/utils/sortTags';
 
 export default class TagsPage extends Page {
-  init() {
-    super.init();
-
-    this.tags = sortTags(app.store.all('tags').filter(tag => !tag.parent()));
+  oninit(vnode) {
+    super.oninit(vnode);
 
     app.history.push('tags', app.translator.trans('flarum-tags.forum.header.back_to_tags_tooltip'));
+
+    this.tags = [];
+
+    const preloaded = app.preloadedApiDocument();
+
+    if (preloaded) {
+      this.tags = sortTags(preloaded.filter(tag => !tag.isChild()));
+      return;
+    }
+
+    this.loading = true;
+
+    app.tagList.load(['children', 'lastPostedDiscussion', 'parent']).then(() => {
+      this.tags = sortTags(app.store.all('tags').filter(tag => !tag.isChild()));
+
+      this.loading = false;
+
+      m.redraw();
+    });
   }
 
   view() {
+    if (this.loading) {
+      return <LoadingIndicator />;
+    }
+
     const pinned = this.tags.filter(tag => tag.position() !== null);
     const cloud = this.tags.filter(tag => tag.position() === null);
 
@@ -23,7 +47,7 @@ export default class TagsPage extends Page {
       <div className="TagsPage">
         {IndexPage.prototype.hero()}
         <div className="container">
-          <nav className="TagsPage-nav IndexPage-nav sideNav" config={IndexPage.prototype.affixSidebar}>
+          <nav className="TagsPage-nav IndexPage-nav sideNav">
             <ul>{listItems(IndexPage.prototype.sidebarItems().toArray())}</ul>
           </nav>
 
@@ -31,38 +55,35 @@ export default class TagsPage extends Page {
             <ul className="TagTiles">
               {pinned.map(tag => {
                 const lastPostedDiscussion = tag.lastPostedDiscussion();
-                const children = sortTags(app.store.all('tags').filter(child => child.parent() === tag));
+                const children = sortTags(tag.children() || []);
 
                 return (
                   <li className={'TagTile ' + (tag.color() ? 'colored' : '')}
-                    style={{backgroundColor: tag.color()}}>
-                    <a className="TagTile-info" href={app.route.tag(tag)} config={m.route}>
+                    style={{ '--tag-bg': tag.color() }}>
+                    <Link className="TagTile-info" href={app.route.tag(tag)}>
+                      {tag.icon() && tagIcon(tag, {}, { useColor: false })}
                       <h3 className="TagTile-name">{tag.name()}</h3>
                       <p className="TagTile-description">{tag.description()}</p>
                       {children
                         ? (
                           <div className="TagTile-children">
                             {children.map(child => [
-                              <a href={app.route.tag(child)} config={function(element, isInitialized) {
-                                if (isInitialized) return;
-                                $(element).on('click', e => e.stopPropagation());
-                                m.route.apply(this, arguments);
-                              }}>
+                              <Link href={app.route.tag(child)}>
                                 {child.name()}
-                              </a>,
+                              </Link>,
                               ' '
                             ])}
                           </div>
                         ) : ''}
-                    </a>
+                    </Link>
                     {lastPostedDiscussion
                       ? (
-                        <a className="TagTile-lastPostedDiscussion"
+                        <Link className="TagTile-lastPostedDiscussion"
                           href={app.route.discussion(lastPostedDiscussion, lastPostedDiscussion.lastPostNumber())}
-                          config={m.route}>
+                          >
                           <span className="TagTile-lastPostedDiscussion-title">{lastPostedDiscussion.title()}</span>
                           {humanTime(lastPostedDiscussion.lastPostedAt())}
-                        </a>
+                        </Link>
                       ) : (
                         <span className="TagTile-lastPostedDiscussion"/>
                       )}
@@ -83,5 +104,12 @@ export default class TagsPage extends Page {
         </div>
       </div>
     );
+  }
+
+  oncreate(vnode) {
+    super.oncreate(vnode);
+
+    app.setTitle(app.translator.trans('flarum-tags.forum.all_tags.meta_title_text'));
+    app.setTitleCount(0);
   }
 }

@@ -1,6 +1,4 @@
-import { override } from 'flarum/extend';
-import app from 'flarum/app';
-import Post from 'flarum/models/Post';
+import app from 'flarum/forum/app';
 
 import addComposerAutocomplete from './addComposerAutocomplete';
 import renderEmoji from './renderEmoji';

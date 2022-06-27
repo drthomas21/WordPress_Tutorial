@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post;
@@ -80,32 +78,6 @@ class PostRepository
         }
 
         return $query->get();
-    }
-
-    /**
-     * Find posts by their IDs, optionally making sure they are visible to a
-     * certain user.
-     *
-     * @param array $ids
-     * @param \Flarum\User\User|null $actor
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function findByIds(array $ids, User $actor = null)
-    {
-        $posts = $this->queryIds($ids, $actor)->get();
-
-        $posts = $posts->sort(function ($a, $b) use ($ids) {
-            $aPos = array_search($a->id, $ids);
-            $bPos = array_search($b->id, $ids);
-
-            if ($aPos === $bPos) {
-                return 0;
-            }
-
-            return $aPos < $bPos ? -1 : 1;
-        });
-
-        return $posts;
     }
 
     /**

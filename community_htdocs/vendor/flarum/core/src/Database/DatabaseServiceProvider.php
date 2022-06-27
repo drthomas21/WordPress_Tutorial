@@ -3,17 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Database;
 
 use Flarum\Foundation\AbstractServiceProvider;
-use Illuminate\Database\ConnectionResolver;
-use Illuminate\Database\Connectors\ConnectionFactory;
+use Illuminate\Contracts\Container\Container;
+use Illuminate\Database\Capsule\Manager;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\ConnectionResolverInterface;
 
 class DatabaseServiceProvider extends AbstractServiceProvider
 {
@@ -22,37 +22,66 @@ class DatabaseServiceProvider extends AbstractServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('flarum.db', function () {
-            $factory = new ConnectionFactory($this->app);
+        $this->container->singleton(Manager::class, function (Container $container) {
+            $manager = new Manager($container);
 
-            $dbConfig = $this->app->config('database');
-            $dbConfig['engine'] = 'InnoDB';
-            $connection = $factory->make($dbConfig);
-            $connection->setEventDispatcher($this->app->make('Illuminate\Contracts\Events\Dispatcher'));
+            $config = $container['flarum']->config('database');
+            $config['engine'] = 'InnoDB';
+            $config['prefix_indexes'] = true;
 
-            return $connection;
+            $manager->addConnection($config, 'flarum');
+
+            return $manager;
         });
 
-        $this->app->alias('flarum.db', 'Illuminate\Database\ConnectionInterface');
+        $this->container->singleton(ConnectionResolverInterface::class, function (Container $container) {
+            $manager = $container->make(Manager::class);
+            $manager->setAsGlobal();
+            $manager->bootEloquent();
 
-        $this->app->singleton('Illuminate\Database\ConnectionResolverInterface', function () {
-            $resolver = new ConnectionResolver([
-                'flarum' => $this->app->make('flarum.db'),
-            ]);
-            $resolver->setDefaultConnection('flarum');
+            $dbManager = $manager->getDatabaseManager();
+            $dbManager->setDefaultConnection('flarum');
 
-            return $resolver;
+            return $dbManager;
         });
 
-        $this->app->alias('Illuminate\Database\ConnectionResolverInterface', 'db');
+        $this->container->alias(ConnectionResolverInterface::class, 'db');
+
+        $this->container->singleton(ConnectionInterface::class, function (Container $container) {
+            $resolver = $container->make(ConnectionResolverInterface::class);
+
+            return $resolver->connection();
+        });
+
+        $this->container->alias(ConnectionInterface::class, 'db.connection');
+        $this->container->alias(ConnectionInterface::class, 'flarum.db');
+
+        $this->container->singleton(MigrationRepositoryInterface::class, function (Container $container) {
+            return new DatabaseMigrationRepository($container['flarum.db'], 'migrations');
+        });
+
+        $this->container->singleton('flarum.database.model_private_checkers', function () {
+            return [];
+        });
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function boot()
+    public function boot(Container $container)
     {
-        AbstractModel::setConnectionResolver($this->app->make('Illuminate\Database\ConnectionResolverInterface'));
-        AbstractModel::setEventDispatcher($this->app->make('events'));
+        AbstractModel::setConnectionResolver($container->make(ConnectionResolverInterface::class));
+        AbstractModel::setEventDispatcher($container->make('events'));
+
+        foreach ($container->make('flarum.database.model_private_checkers') as $modelClass => $checkers) {
+            $modelClass::saving(function ($instance) use ($checkers) {
+                foreach ($checkers as $checker) {
+                    if ($checker($instance) === true) {
+                        $instance->is_private = true;
+
+                        return;
+                    }
+                }
+
+                $instance->is_private = false;
+            });
+        }
     }
 }

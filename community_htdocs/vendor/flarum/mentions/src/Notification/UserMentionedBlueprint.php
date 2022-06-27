@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Mentions\Notification;
@@ -14,6 +12,7 @@ namespace Flarum\Mentions\Notification;
 use Flarum\Notification\Blueprint\BlueprintInterface;
 use Flarum\Notification\MailableInterface;
 use Flarum\Post\Post;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class UserMentionedBlueprint implements BlueprintInterface, MailableInterface
 {
@@ -64,9 +63,12 @@ class UserMentionedBlueprint implements BlueprintInterface, MailableInterface
     /**
      * {@inheritdoc}
      */
-    public function getEmailSubject()
+    public function getEmailSubject(TranslatorInterface $translator)
     {
-        return "{$this->post->user->username} mentioned you in {$this->post->discussion->title}";
+        return $translator->trans('flarum-mentions.email.user_mentioned.subject', [
+            '{mentioner_display_name}' => $this->post->user->display_name,
+            '{title}' => $this->post->discussion->title
+        ]);
     }
 
     /**

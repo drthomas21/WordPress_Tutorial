@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Discussion\Command;
@@ -14,13 +12,11 @@ namespace Flarum\Discussion\Command;
 use Flarum\Discussion\DiscussionRepository;
 use Flarum\Discussion\Event\UserDataSaving;
 use Flarum\Foundation\DispatchEventsTrait;
-use Flarum\User\AssertPermissionTrait;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class ReadDiscussionHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var DiscussionRepository
@@ -46,7 +42,7 @@ class ReadDiscussionHandler
     {
         $actor = $command->actor;
 
-        $this->assertRegistered($actor);
+        $actor->assertRegistered();
 
         $discussion = $this->discussions->findOrFail($command->discussionId, $actor);
 

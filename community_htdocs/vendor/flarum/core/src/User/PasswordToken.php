@@ -3,16 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User;
 
 use Carbon\Carbon;
 use Flarum\Database\AbstractModel;
+use Illuminate\Support\Str;
 
 /**
  * @property string $token
@@ -50,7 +49,7 @@ class PasswordToken extends AbstractModel
     {
         $token = new static;
 
-        $token->token = str_random(40);
+        $token->token = Str::random(40);
         $token->user_id = $userId;
         $token->created_at = Carbon::now();
 

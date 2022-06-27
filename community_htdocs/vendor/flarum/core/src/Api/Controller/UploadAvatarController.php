@@ -3,17 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Api\Serializer\UserSerializer;
+use Flarum\Http\RequestUtil;
 use Flarum\User\Command\UploadAvatar;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -42,9 +42,9 @@ class UploadAvatarController extends AbstractShowController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $id = array_get($request->getQueryParams(), 'id');
-        $actor = $request->getAttribute('actor');
-        $file = array_get($request->getUploadedFiles(), 'avatar');
+        $id = Arr::get($request->getQueryParams(), 'id');
+        $actor = RequestUtil::getActor($request);
+        $file = Arr::get($request->getUploadedFiles(), 'avatar');
 
         return $this->bus->dispatch(
             new UploadAvatar($id, $file, $actor)

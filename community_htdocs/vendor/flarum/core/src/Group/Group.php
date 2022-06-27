@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Group;
@@ -25,6 +23,7 @@ use Flarum\User\User;
  * @property string $name_plural
  * @property string|null $color
  * @property string|null $icon
+ * @property bool $is_hidden
  * @property \Illuminate\Database\Eloquent\Collection $users
  * @property \Illuminate\Database\Eloquent\Collection $permissions
  */
@@ -62,7 +61,7 @@ class Group extends AbstractModel
     {
         parent::boot();
 
-        static::deleted(function (Group $group) {
+        static::deleted(function (self $group) {
             $group->raise(new Deleted($group));
         });
     }
@@ -74,9 +73,10 @@ class Group extends AbstractModel
      * @param string $namePlural
      * @param string $color
      * @param string $icon
+     * @param bool   $isHidden
      * @return static
      */
-    public static function build($nameSingular, $namePlural, $color, $icon)
+    public static function build($nameSingular, $namePlural, $color = null, $icon = null, bool $isHidden = false): self
     {
         $group = new static;
 
@@ -84,6 +84,7 @@ class Group extends AbstractModel
         $group->name_plural = $namePlural;
         $group->color = $color;
         $group->icon = $icon;
+        $group->is_hidden = $isHidden;
 
         $group->raise(new Created($group));
 
@@ -125,5 +126,20 @@ class Group extends AbstractModel
     public function permissions()
     {
         return $this->hasMany(Permission::class);
+    }
+
+    /**
+     * Check whether the group has a certain permission.
+     *
+     * @param string $permission
+     * @return bool
+     */
+    public function hasPermission($permission)
+    {
+        if ($this->id == self::ADMINISTRATOR_ID) {
+            return true;
+        }
+
+        return $this->permissions->contains('permission', $permission);
     }
 }

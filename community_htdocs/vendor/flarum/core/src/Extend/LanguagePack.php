@@ -3,23 +3,41 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Extend;
 
 use DirectoryIterator;
 use Flarum\Extension\Extension;
+use Flarum\Extension\ExtensionManager;
 use Flarum\Locale\LocaleManager;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use RuntimeException;
+use SplFileInfo;
+use Symfony\Component\Translation\MessageCatalogueInterface;
 
-class LanguagePack implements ExtenderInterface
+class LanguagePack implements ExtenderInterface, LifecycleInterface
 {
+    private const CORE_LOCALE_FILES = [
+        'core',
+        'validation',
+    ];
+
+    private $path;
+
+    /**
+     * LanguagePack constructor.
+     *
+     * @param string|null $path: Path to yaml language files.
+     */
+    public function __construct(string $path = '/locale')
+    {
+        $this->path = $path;
+    }
+
     public function extend(Container $container, Extension $extension = null)
     {
         if (is_null($extension)) {
@@ -37,15 +55,23 @@ class LanguagePack implements ExtenderInterface
             );
         }
 
-        /** @var LocaleManager $locales */
-        $locales = $container->make(LocaleManager::class);
+        $container->resolving(
+            LocaleManager::class,
+            function (LocaleManager $locales, Container $container) use ($extension, $locale, $title) {
+                $this->registerLocale($container, $locales, $extension, $locale, $title);
+            }
+        );
+    }
+
+    private function registerLocale(Container $container, LocaleManager $locales, Extension $extension, $locale, $title)
+    {
         $locales->addLocale($locale, $title);
 
-        $directory = $extension->getPath().'/locale';
+        $directory = $extension->getPath().$this->path;
 
         if (! is_dir($directory)) {
             throw new RuntimeException(
-                'Language packs must have a "locale" subdirectory.'
+                'Expected to find "'.$this->path.'" directory in language pack.'
             );
         }
 
@@ -58,9 +84,51 @@ class LanguagePack implements ExtenderInterface
         }
 
         foreach (new DirectoryIterator($directory) as $file) {
-            if ($file->isFile() && in_array($file->getExtension(), ['yml', 'yaml'])) {
+            if ($this->shouldLoad($file, $container)) {
                 $locales->addTranslations($locale, $file->getPathname());
             }
         }
+    }
+
+    private function shouldLoad(SplFileInfo $file, Container $container)
+    {
+        if (! $file->isFile()) {
+            return false;
+        }
+
+        // We are only interested in YAML files
+        if (! in_array($file->getExtension(), ['yml', 'yaml'], true)) {
+            return false;
+        }
+
+        // Some language packs include translations for many extensions
+        // from the ecosystems. For performance reasons, we should only
+        // load those that belong to core, or extensions that are enabled.
+        // To identify them, we compare the filename (without the YAML
+        // extension) with the list of known names and all extension IDs.
+        $slug = $file->getBasename(".{$file->getExtension()}");
+
+        // Ignore ICU MessageFormat suffixes.
+        $slug = str_replace(MessageCatalogueInterface::INTL_DOMAIN_SUFFIX, '', $slug);
+
+        if (in_array($slug, self::CORE_LOCALE_FILES, true)) {
+            return true;
+        }
+
+        /** @var ExtensionManager $extensions */
+        static $extensions;
+        $extensions = $extensions ?? $container->make(ExtensionManager::class);
+
+        return $extensions->isEnabled($slug);
+    }
+
+    public function onEnable(Container $container, Extension $extension)
+    {
+        $container->make('flarum.locales')->clearCache();
+    }
+
+    public function onDisable(Container $container, Extension $extension)
+    {
+        $container->make('flarum.locales')->clearCache();
     }
 }

@@ -3,17 +3,18 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Serializer;
 
 use Flarum\Foundation\Application;
+use Flarum\Foundation\Config;
 use Flarum\Http\UrlGenerator;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Illuminate\Contracts\Filesystem\Cloud;
+use Illuminate\Contracts\Filesystem\Factory;
 
 class ForumSerializer extends AbstractSerializer
 {
@@ -23,9 +24,9 @@ class ForumSerializer extends AbstractSerializer
     protected $type = 'forums';
 
     /**
-     * @var Application
+     * @var Config
      */
-    protected $app;
+    protected $config;
 
     /**
      * @var SettingsRepositoryInterface
@@ -38,13 +39,20 @@ class ForumSerializer extends AbstractSerializer
     protected $url;
 
     /**
-     * @param Application $app
+     * @var Cloud
+     */
+    protected $assetsFilesystem;
+
+    /**
+     * @param Config $config
+     * @param Factory $filesystemFactory
      * @param SettingsRepositoryInterface $settings
      * @param UrlGenerator $url
      */
-    public function __construct(Application $app, SettingsRepositoryInterface $settings, UrlGenerator $url)
+    public function __construct(Config $config, Factory $filesystemFactory, SettingsRepositoryInterface $settings, UrlGenerator $url)
     {
-        $this->app = $app;
+        $this->config = $config;
+        $this->assetsFilesystem = $filesystemFactory->disk('flarum-assets');
         $this->settings = $settings;
         $this->url = $url;
     }
@@ -66,10 +74,11 @@ class ForumSerializer extends AbstractSerializer
             'title' => $this->settings->get('forum_title'),
             'description' => $this->settings->get('forum_description'),
             'showLanguageSelector' => (bool) $this->settings->get('show_language_selector', true),
-            'baseUrl' => $url = $this->app->url(),
-            'basePath' => parse_url($url, PHP_URL_PATH) ?: '',
-            'debug' => $this->app->inDebugMode(),
-            'apiUrl' => $this->app->url('api'),
+            'baseUrl' => $url = $this->url->to('forum')->base(),
+            'basePath' => $path = parse_url($url, PHP_URL_PATH) ?: '',
+            'baseOrigin' => substr($url, 0, strlen($url) - strlen($path)),
+            'debug' => $this->config->inDebugMode(),
+            'apiUrl' => $this->url->to('api')->base(),
             'welcomeTitle' => $this->settings->get('welcome_title'),
             'welcomeMessage' => $this->settings->get('welcome_message'),
             'themePrimaryColor' => $this->settings->get('theme_primary_color'),
@@ -80,14 +89,14 @@ class ForumSerializer extends AbstractSerializer
             'footerHtml' => $this->settings->get('custom_footer'),
             'allowSignUp' => (bool) $this->settings->get('allow_sign_up'),
             'defaultRoute'  => $this->settings->get('default_route'),
-            'canViewDiscussions' => $this->actor->can('viewDiscussions'),
+            'canViewForum' => $this->actor->can('viewForum'),
             'canStartDiscussion' => $this->actor->can('startDiscussion'),
-            'canViewUserList' => $this->actor->can('viewUserList')
+            'canSearchUsers' => $this->actor->can('searchUsers')
         ];
 
         if ($this->actor->can('administrate')) {
-            $attributes['adminUrl'] = $this->app->url('admin');
-            $attributes['version'] = $this->app->version();
+            $attributes['adminUrl'] = $this->url->to('admin')->base();
+            $attributes['version'] = Application::VERSION;
         }
 
         return $attributes;
@@ -108,7 +117,7 @@ class ForumSerializer extends AbstractSerializer
     {
         $logoPath = $this->settings->get('logo_path');
 
-        return $logoPath ? $this->url->to('forum')->path('assets/'.$logoPath) : null;
+        return $logoPath ? $this->getAssetUrl($logoPath) : null;
     }
 
     /**
@@ -118,6 +127,11 @@ class ForumSerializer extends AbstractSerializer
     {
         $faviconPath = $this->settings->get('favicon_path');
 
-        return $faviconPath ? $this->url->to('forum')->path('assets/'.$faviconPath) : null;
+        return $faviconPath ? $this->getAssetUrl($faviconPath) : null;
+    }
+
+    public function getAssetUrl($assetPath): string
+    {
+        return $this->assetsFilesystem->url($assetPath);
     }
 }

@@ -1,24 +1,25 @@
-import { extend } from 'flarum/extend';
-import CommentPost from 'flarum/components/CommentPost';
-import PostPreview from 'flarum/components/PostPreview';
-import LoadingIndicator from 'flarum/components/LoadingIndicator';
+import { extend } from 'flarum/common/extend';
+import CommentPost from 'flarum/forum/components/CommentPost';
+import PostPreview from 'flarum/forum/components/PostPreview';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 
 export default function addPostMentionPreviews() {
-  extend(CommentPost.prototype, 'config', function() {
-    const contentHtml = this.props.post.contentHtml();
+  function addPreviews() {
+    const contentHtml = this.attrs.post.contentHtml();
 
     if (contentHtml === this.oldPostContentHtml || this.isEditing()) return;
 
     this.oldPostContentHtml = contentHtml;
 
-    const parentPost = this.props.post;
+    const parentPost = this.attrs.post;
     const $parentPost = this.$();
 
-    this.$('.UserMention, .PostMention').each(function() {
-      m.route.call(this, this, false, {}, {attrs: {href: this.getAttribute('href')}});
+    this.$().on('click', '.UserMention:not(.UserMention--deleted), .PostMention:not(.PostMention--deleted)', function (e) {
+      m.route.set(this.getAttribute('href'));
+      e.preventDefault();
     });
 
-    this.$('.PostMention').each(function() {
+    this.$('.PostMention:not(.PostMention--deleted)').each(function () {
       const $this = $(this);
       const id = $this.data('id');
       let timeout;
@@ -64,20 +65,25 @@ export default function addPostMentionPreviews() {
               offset -= previewHeight;
             }
 
-            $preview.show()
+            $preview
+              .show()
               .css('top', $this.offset().top - $parentPost.offset().top + offset)
               .css('left', $this.offsetParent().offset().left - $parentPost.offset().left)
               .css('max-width', $this.offsetParent().width());
           };
 
-          const showPost = post => {
+          const showPost = (post) => {
             const discussion = post.discussion();
 
             m.render($preview[0], [
-              discussion !== parentPost.discussion()
-                ? <li><span className="PostMention-preview-discussion">{discussion.title()}</span></li>
-                : '',
-              <li>{PostPreview.component({post})}</li>
+              discussion !== parentPost.discussion() ? (
+                <li>
+                  <span className="PostMention-preview-discussion">{discussion.title()}</span>
+                </li>
+              ) : (
+                ''
+              ),
+              <li>{PostPreview.component({ post })}</li>,
             ]);
             positionPreview();
           };
@@ -102,25 +108,37 @@ export default function addPostMentionPreviews() {
         }
       };
 
-      $this.on('touchstart', e => e.preventDefault());
-
-      $this.add($preview).hover(
-        () => {
-          clearTimeout(timeout);
-          timeout = setTimeout(showPreview, 250);
-        },
-        () => {
-          clearTimeout(timeout);
-          getPostElement().removeClass('pulsate');
-          timeout = setTimeout(hidePreview, 250);
+      // On a touch (mobile) device we cannot hover the link to reveal the preview.
+      // Instead we cancel the navigation so that a click reveals the preview.
+      // Users can then click on the preview to go to the post if desired.
+      $this.on('touchend', (e) => {
+        if (e.cancelable) {
+          e.preventDefault();
         }
-      )
-        .on('touchend', e => {
+      });
+
+      $this
+        .add($preview)
+        .hover(
+          () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(showPreview, 250);
+          },
+          () => {
+            clearTimeout(timeout);
+            getPostElement().removeClass('pulsate');
+            timeout = setTimeout(hidePreview, 250);
+          }
+        )
+        .on('touchend', (e) => {
           showPreview();
           e.stopPropagation();
         });
 
       $(document).on('touchend', hidePreview);
     });
-  });
+  }
+
+  extend(CommentPost.prototype, 'oncreate', addPreviews);
+  extend(CommentPost.prototype, 'onupdate', addPreviews);
 }

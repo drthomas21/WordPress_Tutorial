@@ -1,13 +1,23 @@
+:root {
+  --following-bg: #ffea7b;
+  --following-color: #de8e00;
+  --ignoring-bg: #aaa;
+}
+
 .Badge--following {
-  background: #ffea7b;
-  color: #de8e00;
+  --badge-bg: var(--following-bg);
+  --badge-color: var(--following-color);
 }
 .Badge--ignoring {
-  background: #aaa;
+  --badge-bg: var(--ignoring-bg);
 }
 .SubscriptionMenu-button--follow {
-  .Button--color(#de8e00, #fff2ae);
-  // TODO: dark mode
+  & when (@config-dark-mode = false) {
+    .Button--color(#de8e00, #fff2ae);
+  }
+  & when (@config-dark-mode = true) {
+    .Button--color(#784d00, #fbb94c);
+  }
 }
 .SubscriptionMenu .Dropdown-menu {
   min-width: 260px;

@@ -3,14 +3,13 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Database;
 
+use Flarum\Extend\Settings;
 use Flarum\Settings\DatabaseSettingsRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
@@ -29,10 +28,8 @@ abstract class Migration
     {
         return [
             'up' => function (Builder $schema) use ($name, $definition) {
-                $schema->create($name, function (Blueprint $table) use ($schema, $definition) {
+                $schema->create($name, function (Blueprint $table) use ($definition) {
                     $definition($table);
-
-                    static::fixIndexNames($schema, $table);
                 });
             },
             'down' => function (Builder $schema) use ($name) {
@@ -63,13 +60,11 @@ abstract class Migration
     {
         return [
             'up' => function (Builder $schema) use ($tableName, $columnDefinitions) {
-                $schema->table($tableName, function (Blueprint $table) use ($schema, $columnDefinitions) {
+                $schema->table($tableName, function (Blueprint $table) use ($columnDefinitions) {
                     foreach ($columnDefinitions as $columnName => $options) {
                         $type = array_shift($options);
                         $table->addColumn($type, $columnName, $options);
                     }
-
-                    Migration::fixIndexNames($schema, $table);
                 });
             },
             'down' => function (Builder $schema) use ($tableName, $columnDefinitions) {
@@ -126,6 +121,9 @@ abstract class Migration
 
     /**
      * Add default values for config values.
+     *
+     * @deprecated Use the Settings extender's `default` method instead to register settings.
+     * @see Settings::default()
      */
     public static function addSettings(array $defaults)
     {
@@ -192,28 +190,5 @@ abstract class Migration
                 }
             }
         ];
-    }
-
-    /**
-     * Add a prefix to index names on the given table blueprint.
-     *
-     * Laravel 5.5 doesn't automatically add the table prefix to index
-     * names, but this has been fixed in 5.7. We will manually fix the
-     * names for now, and we can remove this when we upgrade to 5.7.
-     */
-    public static function fixIndexNames(Builder $schema, Blueprint $table)
-    {
-        $indexCommands = [
-            'unique', 'index', 'spatialIndex', 'foreign',
-            'dropUnique', 'dropIndex', 'dropSpatialIndex', 'dropForeign'
-        ];
-
-        $prefix = $schema->getConnection()->getTablePrefix();
-
-        foreach ($table->getCommands() as $command) {
-            if (in_array($command->name, $indexCommands)) {
-                $command->index = $prefix.$command->index;
-            }
-        }
     }
 }

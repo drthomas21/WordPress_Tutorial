@@ -3,26 +3,27 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Controller;
 
 use Flarum\Foundation\DispatchEventsTrait;
+use Flarum\Http\SessionAccessToken;
 use Flarum\Http\SessionAuthenticator;
 use Flarum\Http\UrlGenerator;
 use Flarum\User\PasswordToken;
 use Flarum\User\UserValidator;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Validation\Factory;
+use Illuminate\Support\Arr;
+use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Diactoros\Response\RedirectResponse;
 
 class SavePasswordController implements RequestHandlerInterface
 {
@@ -71,9 +72,9 @@ class SavePasswordController implements RequestHandlerInterface
     {
         $input = $request->getParsedBody();
 
-        $token = PasswordToken::findOrFail(array_get($input, 'passwordToken'));
+        $token = PasswordToken::findOrFail(Arr::get($input, 'passwordToken'));
 
-        $password = array_get($input, 'password');
+        $password = Arr::get($input, 'password');
 
         try {
             // todo: probably shouldn't use the user validator for this,
@@ -86,9 +87,9 @@ class SavePasswordController implements RequestHandlerInterface
                 throw new ValidationException($validator);
             }
         } catch (ValidationException $e) {
-            $request->getAttribute('session')->put('errors', $e->errors());
+            $request->getAttribute('session')->put('errors', new MessageBag($e->errors()));
 
-            return new RedirectResponse($this->url->to('forum')->route('resetPassword', ['token' => $token->id]));
+            return new RedirectResponse($this->url->to('forum')->route('resetPassword', ['token' => $token->token]));
         }
 
         $token->user->changePassword($password);
@@ -99,7 +100,8 @@ class SavePasswordController implements RequestHandlerInterface
         $token->delete();
 
         $session = $request->getAttribute('session');
-        $this->authenticator->logIn($session, $token->user->id);
+        $accessToken = SessionAccessToken::generate($token->user->id);
+        $this->authenticator->logIn($session, $accessToken);
 
         return new RedirectResponse($this->url->to('forum')->base());
     }

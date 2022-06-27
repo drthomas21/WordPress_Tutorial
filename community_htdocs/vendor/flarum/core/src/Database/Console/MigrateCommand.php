@@ -3,16 +3,21 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Database\Console;
 
 use Flarum\Console\AbstractCommand;
+use Flarum\Database\Migrator;
+use Flarum\Extension\ExtensionManager;
+use Flarum\Foundation\Application;
+use Flarum\Foundation\Paths;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Schema\Builder;
 
 class MigrateCommand extends AbstractCommand
 {
@@ -22,11 +27,18 @@ class MigrateCommand extends AbstractCommand
     protected $container;
 
     /**
-     * @param Container $container
+     * @var Paths
      */
-    public function __construct(Container $container)
+    protected $paths;
+
+    /**
+     * @param Container $container
+     * @param Paths $paths
+     */
+    public function __construct(Container $container, Paths $paths)
     {
         $this->container = $container;
+        $this->paths = $paths;
 
         parent::__construct();
     }
@@ -55,16 +67,16 @@ class MigrateCommand extends AbstractCommand
 
     public function upgrade()
     {
-        $this->container->bind('Illuminate\Database\Schema\Builder', function ($container) {
-            return $container->make('Illuminate\Database\ConnectionInterface')->getSchemaBuilder();
+        $this->container->bind(Builder::class, function ($container) {
+            return $container->make(ConnectionInterface::class)->getSchemaBuilder();
         });
 
-        $migrator = $this->container->make('Flarum\Database\Migrator');
+        $migrator = $this->container->make(Migrator::class);
         $migrator->setOutput($this->output);
 
         $migrator->run(__DIR__.'/../../../migrations');
 
-        $extensions = $this->container->make('Flarum\Extension\ExtensionManager');
+        $extensions = $this->container->make(ExtensionManager::class);
         $extensions->getMigrator()->setOutput($this->output);
 
         foreach ($extensions->getEnabledExtensions() as $name => $extension) {
@@ -75,13 +87,6 @@ class MigrateCommand extends AbstractCommand
             }
         }
 
-        $this->container->make('Flarum\Settings\SettingsRepositoryInterface')->set('version', $this->container->version());
-
-        $this->info('Publishing assets...');
-
-        $this->container->make('files')->copyDirectory(
-            base_path().'/vendor/components/font-awesome/webfonts',
-            public_path().'/assets/fonts'
-        );
+        $this->container->make(SettingsRepositoryInterface::class)->set('version', Application::VERSION);
     }
 }

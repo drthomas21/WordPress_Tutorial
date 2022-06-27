@@ -3,19 +3,21 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum;
 
-use Flarum\Event\ConfigureForumRoutes;
-use Flarum\Event\ConfigureMiddleware;
+use Flarum\Extension\Event\Disabled;
+use Flarum\Extension\Event\Enabled;
 use Flarum\Formatter\Formatter;
 use Flarum\Foundation\AbstractServiceProvider;
-use Flarum\Foundation\Application;
+use Flarum\Foundation\ErrorHandling\Registry;
+use Flarum\Foundation\ErrorHandling\Reporter;
+use Flarum\Foundation\ErrorHandling\ViewFormatter;
+use Flarum\Foundation\ErrorHandling\WhoopsFormatter;
+use Flarum\Foundation\Event\ClearingCache;
 use Flarum\Frontend\AddLocaleAssets;
 use Flarum\Frontend\AddTranslations;
 use Flarum\Frontend\Assets;
@@ -25,9 +27,15 @@ use Flarum\Http\Middleware as HttpMiddleware;
 use Flarum\Http\RouteCollection;
 use Flarum\Http\RouteHandlerFactory;
 use Flarum\Http\UrlGenerator;
+use Flarum\Locale\LocaleManager;
+use Flarum\Settings\Event\Saved;
+use Flarum\Settings\Event\Saving;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Symfony\Component\Translation\TranslatorInterface;
-use Zend\Stratigility\MiddlewarePipe;
+use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\View\Factory;
+use Laminas\Stratigility\MiddlewarePipe;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ForumServiceProvider extends AbstractServiceProvider
 {
@@ -36,99 +44,152 @@ class ForumServiceProvider extends AbstractServiceProvider
      */
     public function register()
     {
-        $this->app->extend(UrlGenerator::class, function (UrlGenerator $url) {
-            return $url->addCollection('forum', $this->app->make('flarum.forum.routes'));
+        $this->container->extend(UrlGenerator::class, function (UrlGenerator $url, Container $container) {
+            return $url->addCollection('forum', $container->make('flarum.forum.routes'));
         });
 
-        $this->app->singleton('flarum.forum.routes', function () {
-            return new RouteCollection;
+        $this->container->singleton('flarum.forum.routes', function (Container $container) {
+            $routes = new RouteCollection;
+            $this->populateRoutes($routes, $container);
+
+            return $routes;
         });
 
-        $this->app->singleton('flarum.forum.middleware', function (Application $app) {
+        $this->container->afterResolving('flarum.forum.routes', function (RouteCollection $routes, Container $container) {
+            $this->setDefaultRoute($routes, $container);
+        });
+
+        $this->container->singleton('flarum.forum.middleware', function () {
+            return [
+                HttpMiddleware\InjectActorReference::class,
+                'flarum.forum.error_handler',
+                HttpMiddleware\ParseJsonBody::class,
+                HttpMiddleware\CollectGarbage::class,
+                HttpMiddleware\StartSession::class,
+                HttpMiddleware\RememberFromCookie::class,
+                HttpMiddleware\AuthenticateWithSession::class,
+                HttpMiddleware\SetLocale::class,
+                'flarum.forum.route_resolver',
+                HttpMiddleware\CheckCsrfToken::class,
+                HttpMiddleware\ShareErrorsFromSession::class,
+                HttpMiddleware\FlarumPromotionHeader::class,
+                HttpMiddleware\ReferrerPolicyHeader::class,
+                HttpMiddleware\ContentTypeOptionsHeader::class
+            ];
+        });
+
+        $this->container->bind('flarum.forum.error_handler', function (Container $container) {
+            return new HttpMiddleware\HandleErrors(
+                $container->make(Registry::class),
+                $container['flarum.config']->inDebugMode() ? $container->make(WhoopsFormatter::class) : $container->make(ViewFormatter::class),
+                $container->tagged(Reporter::class)
+            );
+        });
+
+        $this->container->bind('flarum.forum.route_resolver', function (Container $container) {
+            return new HttpMiddleware\ResolveRoute($container->make('flarum.forum.routes'));
+        });
+
+        $this->container->singleton('flarum.forum.handler', function (Container $container) {
             $pipe = new MiddlewarePipe;
 
-            // All requests should first be piped through our global error handler
-            if ($app->inDebugMode()) {
-                $pipe->pipe($app->make(HttpMiddleware\HandleErrorsWithWhoops::class));
-            } else {
-                $pipe->pipe($app->make(HttpMiddleware\HandleErrorsWithView::class));
+            foreach ($container->make('flarum.forum.middleware') as $middleware) {
+                $pipe->pipe($container->make($middleware));
             }
 
-            $pipe->pipe($app->make(HttpMiddleware\ParseJsonBody::class));
-            $pipe->pipe($app->make(HttpMiddleware\CollectGarbage::class));
-            $pipe->pipe($app->make(HttpMiddleware\StartSession::class));
-            $pipe->pipe($app->make(HttpMiddleware\RememberFromCookie::class));
-            $pipe->pipe($app->make(HttpMiddleware\AuthenticateWithSession::class));
-            $pipe->pipe($app->make(HttpMiddleware\SetLocale::class));
-            $pipe->pipe($app->make(HttpMiddleware\ShareErrorsFromSession::class));
-
-            event(new ConfigureMiddleware($pipe, 'forum'));
+            $pipe->pipe(new HttpMiddleware\ExecuteRoute());
 
             return $pipe;
         });
 
-        $this->app->afterResolving('flarum.forum.middleware', function (MiddlewarePipe $pipe) {
-            $pipe->pipe(new HttpMiddleware\DispatchRoute($this->app->make('flarum.forum.routes')));
-        });
-
-        $this->app->bind('flarum.assets.forum', function () {
+        $this->container->bind('flarum.assets.forum', function (Container $container) {
             /** @var Assets $assets */
-            $assets = $this->app->make('flarum.assets.factory')('forum');
+            $assets = $container->make('flarum.assets.factory')('forum');
 
-            $assets->js(function (SourceCollector $sources) {
+            $assets->js(function (SourceCollector $sources) use ($container) {
                 $sources->addFile(__DIR__.'/../../js/dist/forum.js');
-                $sources->addString(function () {
-                    return $this->app->make(Formatter::class)->getJs();
+                $sources->addString(function () use ($container) {
+                    return $container->make(Formatter::class)->getJs();
                 });
             });
 
-            $assets->css(function (SourceCollector $sources) {
+            $assets->css(function (SourceCollector $sources) use ($container) {
                 $sources->addFile(__DIR__.'/../../less/forum.less');
-                $sources->addString(function () {
-                    return $this->app->make(SettingsRepositoryInterface::class)->get('custom_less');
+                $sources->addString(function () use ($container) {
+                    return $container->make(SettingsRepositoryInterface::class)->get('custom_less', '');
                 });
             });
 
-            $this->app->make(AddTranslations::class)->forFrontend('forum')->to($assets);
-            $this->app->make(AddLocaleAssets::class)->to($assets);
+            $container->make(AddTranslations::class)->forFrontend('forum')->to($assets);
+            $container->make(AddLocaleAssets::class)->to($assets);
 
             return $assets;
         });
 
-        $this->app->bind('flarum.frontend.forum', function () {
-            return $this->app->make('flarum.frontend.factory')('forum');
+        $this->container->bind('flarum.frontend.forum', function (Container $container) {
+            return $container->make('flarum.frontend.factory')('forum');
+        });
+
+        $this->container->singleton('flarum.forum.discussions.sortmap', function () {
+            return [
+                'latest' => '-lastPostedAt',
+                'top' => '-commentCount',
+                'newest' => '-createdAt',
+                'oldest' => 'createdAt'
+            ];
         });
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function boot()
+    public function boot(Container $container, Dispatcher $events, Factory $view)
     {
-        $this->populateRoutes($this->app->make('flarum.forum.routes'));
-
         $this->loadViewsFrom(__DIR__.'/../../views', 'flarum.forum');
 
-        $this->app->make('view')->share([
-            'translator' => $this->app->make(TranslatorInterface::class),
-            'settings' => $this->app->make(SettingsRepositoryInterface::class)
+        $view->share([
+            'translator' => $container->make(TranslatorInterface::class),
+            'settings' => $container->make(SettingsRepositoryInterface::class)
         ]);
 
-        $events = $this->app->make('events');
-
-        $events->subscribe(
-            new RecompileFrontendAssets(
-                $this->app->make('flarum.assets.forum'),
-                $this->app->make('flarum.locales')
-            )
+        $events->listen(
+            [Enabled::class, Disabled::class, ClearingCache::class],
+            function () use ($container) {
+                $recompile = new RecompileFrontendAssets(
+                    $container->make('flarum.assets.forum'),
+                    $container->make(LocaleManager::class)
+                );
+                $recompile->flush();
+            }
         );
 
-        $events->subscribe(
-            new ValidateCustomLess(
-                $this->app->make('flarum.assets.forum'),
-                $this->app->make('flarum.locales'),
-                $this->app
-            )
+        $events->listen(
+            Saved::class,
+            function (Saved $event) use ($container) {
+                $recompile = new RecompileFrontendAssets(
+                    $container->make('flarum.assets.forum'),
+                    $container->make(LocaleManager::class)
+                );
+                $recompile->whenSettingsSaved($event);
+
+                $validator = new ValidateCustomLess(
+                    $container->make('flarum.assets.forum'),
+                    $container->make('flarum.locales'),
+                    $container,
+                    $container->make('flarum.less.config')
+                );
+                $validator->whenSettingsSaved($event);
+            }
+        );
+
+        $events->listen(
+            Saving::class,
+            function (Saving $event) use ($container) {
+                $validator = new ValidateCustomLess(
+                    $container->make('flarum.assets.forum'),
+                    $container->make('flarum.locales'),
+                    $container,
+                    $container->make('flarum.less.config')
+                );
+                $validator->whenSettingsSaving($event);
+            }
         );
     }
 
@@ -136,22 +197,29 @@ class ForumServiceProvider extends AbstractServiceProvider
      * Populate the forum client routes.
      *
      * @param RouteCollection $routes
+     * @param Container       $container
      */
-    protected function populateRoutes(RouteCollection $routes)
+    protected function populateRoutes(RouteCollection $routes, Container $container)
     {
-        $factory = $this->app->make(RouteHandlerFactory::class);
+        $factory = $container->make(RouteHandlerFactory::class);
 
         $callback = include __DIR__.'/routes.php';
         $callback($routes, $factory);
+    }
 
-        $this->app->make('events')->fire(
-            new ConfigureForumRoutes($routes, $factory)
-        );
+    /**
+     * Determine the default route.
+     *
+     * @param RouteCollection $routes
+     * @param Container       $container
+     */
+    protected function setDefaultRoute(RouteCollection $routes, Container $container)
+    {
+        $factory = $container->make(RouteHandlerFactory::class);
+        $defaultRoute = $container->make('flarum.settings')->get('default_route');
 
-        $defaultRoute = $this->app->make('flarum.settings')->get('default_route');
-
-        if (isset($routes->getRouteData()[0]['GET'][$defaultRoute])) {
-            $toDefaultController = $routes->getRouteData()[0]['GET'][$defaultRoute];
+        if (isset($routes->getRouteData()[0]['GET'][$defaultRoute]['handler'])) {
+            $toDefaultController = $routes->getRouteData()[0]['GET'][$defaultRoute]['handler'];
         } else {
             $toDefaultController = $factory->toForum(Content\Index::class);
         }

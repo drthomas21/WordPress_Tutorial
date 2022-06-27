@@ -1,6 +1,8 @@
+import app from '../../forum/app';
 import UserPage from './UserPage';
 import LoadingIndicator from '../../common/components/LoadingIndicator';
 import Button from '../../common/components/Button';
+import Link from '../../common/components/Link';
 import Placeholder from '../../common/components/Placeholder';
 import CommentPost from './CommentPost';
 
@@ -9,8 +11,8 @@ import CommentPost from './CommentPost';
  * profile.
  */
 export default class PostsUserPage extends UserPage {
-  init() {
-    super.init();
+  oninit(vnode) {
+    super.oninit(vnode);
 
     /**
      * Whether or not the activity feed is currently loading.
@@ -36,7 +38,7 @@ export default class PostsUserPage extends UserPage {
     /**
      * The number of activity items to load per request.
      *
-     * @type {Integer}
+     * @type {number}
      */
     this.loadLimit = 20;
 
@@ -44,7 +46,7 @@ export default class PostsUserPage extends UserPage {
   }
 
   content() {
-    if (this.posts.length === 0 && ! this.loading) {
+    if (this.posts.length === 0 && !this.loading) {
       return (
         <div className="PostsUserPage">
           <Placeholder text={app.translator.trans('core.forum.user.posts_empty_text')} />
@@ -55,15 +57,13 @@ export default class PostsUserPage extends UserPage {
     let footer;
 
     if (this.loading) {
-      footer = LoadingIndicator.component();
+      footer = <LoadingIndicator />;
     } else if (this.moreResults) {
       footer = (
         <div className="PostsUserPage-loadMore">
-          {Button.component({
-            children: app.translator.trans('core.forum.user.posts_load_more_button'),
-            className: 'Button',
-            onclick: this.loadMore.bind(this)
-          })}
+          <Button className="Button" onclick={this.loadMore.bind(this)}>
+            {app.translator.trans('core.forum.user.posts_load_more_button')}
+          </Button>
         </div>
       );
     }
@@ -71,18 +71,19 @@ export default class PostsUserPage extends UserPage {
     return (
       <div className="PostsUserPage">
         <ul className="PostsUserPage-list">
-          {this.posts.map(post => (
+          {this.posts.map((post) => (
             <li>
               <div className="PostsUserPage-discussion">
-                {app.translator.trans('core.forum.user.in_discussion_text', {discussion: <a href={app.route.post(post)} config={m.route}>{post.discussion().title()}</a>})}
+                {app.translator.trans('core.forum.user.in_discussion_text', {
+                  discussion: <Link href={app.route.post(post)}>{post.discussion().title()}</Link>,
+                })}
               </div>
-              {CommentPost.component({post})}
+
+              <CommentPost post={post} />
             </li>
           ))}
         </ul>
-        <div className="PostsUserPage-loadMore">
-          {footer}
-        </div>
+        <div className="PostsUserPage-loadMore">{footer}</div>
       </div>
     );
   }
@@ -99,14 +100,12 @@ export default class PostsUserPage extends UserPage {
 
   /**
    * Clear and reload the user's activity feed.
-   *
-   * @public
    */
   refresh() {
     this.loading = true;
     this.posts = [];
 
-    m.lazyRedraw();
+    m.redraw();
 
     this.loadResults().then(this.parseResults.bind(this));
   }
@@ -114,25 +113,23 @@ export default class PostsUserPage extends UserPage {
   /**
    * Load a new page of the user's activity feed.
    *
-   * @param {Integer} [offset] The position to start getting results from.
-   * @return {Promise}
+   * @param {number} [offset] The position to start getting results from.
+   * @return {Promise<import('../../common/models/Post').default[]>}
    * @protected
    */
   loadResults(offset) {
     return app.store.find('posts', {
       filter: {
-        user: this.user.id(),
-        type: 'comment'
+        author: this.user.username(),
+        type: 'comment',
       },
-      page: {offset, limit: this.loadLimit},
-      sort: '-createdAt'
+      page: { offset, limit: this.loadLimit },
+      sort: '-createdAt',
     });
   }
 
   /**
    * Load the next page of results.
-   *
-   * @public
    */
   loadMore() {
     this.loading = true;
@@ -142,13 +139,13 @@ export default class PostsUserPage extends UserPage {
   /**
    * Parse results and append them to the activity feed.
    *
-   * @param {Post[]} results
-   * @return {Post[]}
+   * @param {import('../../common/models/Post').default[]} results
+   * @return {import('../../common/models/Post').default[]}
    */
   parseResults(results) {
     this.loading = false;
 
-    [].push.apply(this.posts, results);
+    this.posts.push(...results);
 
     this.moreResults = results.length >= this.loadLimit;
     m.redraw();

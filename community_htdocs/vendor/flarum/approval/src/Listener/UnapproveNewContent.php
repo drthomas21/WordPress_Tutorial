@@ -3,53 +3,28 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Approval\Listener;
 
 use Flarum\Discussion\Discussion;
-use Flarum\Event\ConfigureModelDefaultAttributes;
-use Flarum\Event\GetModelIsPrivate;
 use Flarum\Flags\Flag;
+use Flarum\Post\CommentPost;
 use Flarum\Post\Event\Saving;
-use Flarum\Post\Post;
-use Illuminate\Contracts\Events\Dispatcher;
 
 class UnapproveNewContent
 {
     /**
-     * @param Dispatcher $events
-     */
-    public function subscribe(Dispatcher $events)
-    {
-        $events->listen(ConfigureModelDefaultAttributes::class, [$this, 'approveByDefault']);
-        $events->listen(Saving::class, [$this, 'unapproveNewPosts']);
-        $events->listen(GetModelIsPrivate::class, [$this, 'markUnapprovedContentAsPrivate']);
-    }
-
-    /**
-     * @param ConfigureModelDefaultAttributes $event
-     */
-    public function approveByDefault(ConfigureModelDefaultAttributes $event)
-    {
-        if ($event->isModel(Post::class) || $event->isModel(Discussion::class)) {
-            $event->attributes['is_approved'] = true;
-        }
-    }
-
-    /**
      * @param Saving $event
      */
-    public function unapproveNewPosts(Saving $event)
+    public static function unapproveNewPosts(Saving $event)
     {
         $post = $event->post;
 
         if (! $post->exists) {
-            $ability = $post->discussion->post_number_index == 0 ? 'startWithoutApproval' : 'replyWithoutApproval';
+            $ability = $post->discussion->first_post_id === null ? 'startWithoutApproval' : 'replyWithoutApproval';
 
             if ($event->actor->can($ability, $post->discussion)) {
                 if ($post->is_approved === null) {
@@ -79,15 +54,13 @@ class UnapproveNewContent
     }
 
     /**
-     * @param GetModelIsPrivate $event
+     * @param Discussion|CommentPost $instance
      * @return bool|null
      */
-    public function markUnapprovedContentAsPrivate(GetModelIsPrivate $event)
+    public static function markUnapprovedContentAsPrivate($instance)
     {
-        if ($event->model instanceof Post || $event->model instanceof Discussion) {
-            if (! $event->model->is_approved) {
-                return true;
-            }
+        if (! $instance->is_approved) {
+            return true;
         }
     }
 }

@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
@@ -14,8 +12,13 @@ namespace Flarum\Api\Controller;
 use Flarum\Api\Serializer\DiscussionSerializer;
 use Flarum\Discussion\Discussion;
 use Flarum\Discussion\DiscussionRepository;
+use Flarum\Http\RequestUtil;
+use Flarum\Http\SlugManager;
 use Flarum\Post\PostRepository;
 use Flarum\User\User;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -32,6 +35,11 @@ class ShowDiscussionController extends AbstractShowController
     protected $posts;
 
     /**
+     * @var SlugManager
+     */
+    protected $slugManager;
+
+    /**
      * {@inheritdoc}
      */
     public $serializer = DiscussionSerializer::class;
@@ -40,6 +48,7 @@ class ShowDiscussionController extends AbstractShowController
      * {@inheritdoc}
      */
     public $include = [
+        'user',
         'posts',
         'posts.discussion',
         'posts.user',
@@ -61,11 +70,13 @@ class ShowDiscussionController extends AbstractShowController
     /**
      * @param \Flarum\Discussion\DiscussionRepository $discussions
      * @param \Flarum\Post\PostRepository $posts
+     * @param \Flarum\Http\SlugManager $slugManager
      */
-    public function __construct(DiscussionRepository $discussions, PostRepository $posts)
+    public function __construct(DiscussionRepository $discussions, PostRepository $posts, SlugManager $slugManager)
     {
         $this->discussions = $discussions;
         $this->posts = $posts;
+        $this->slugManager = $slugManager;
     }
 
     /**
@@ -73,11 +84,15 @@ class ShowDiscussionController extends AbstractShowController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $discussionId = array_get($request->getQueryParams(), 'id');
-        $actor = $request->getAttribute('actor');
+        $discussionId = Arr::get($request->getQueryParams(), 'id');
+        $actor = RequestUtil::getActor($request);
         $include = $this->extractInclude($request);
 
-        $discussion = $this->discussions->findOrFail($discussionId, $actor);
+        if (Arr::get($request->getQueryParams(), 'bySlug', false)) {
+            $discussion = $this->slugManager->forResource(Discussion::class)->fromSlug($discussionId, $actor);
+        } else {
+            $discussion = $this->discussions->findOrFail($discussionId, $actor);
+        }
 
         if (in_array('posts', $include)) {
             $postRelationships = $this->getPostRelationships($include);
@@ -85,9 +100,9 @@ class ShowDiscussionController extends AbstractShowController
             $this->includePosts($discussion, $request, $postRelationships);
         }
 
-        $discussion->load(array_filter($include, function ($relationship) {
-            return ! starts_with($relationship, 'posts');
-        }));
+        $this->loadRelations(new Collection([$discussion]), array_filter($include, function ($relationship) {
+            return ! Str::startsWith($relationship, 'posts');
+        }), $request);
 
         return $discussion;
     }
@@ -99,7 +114,7 @@ class ShowDiscussionController extends AbstractShowController
      */
     private function includePosts(Discussion $discussion, ServerRequestInterface $request, array $include)
     {
-        $actor = $request->getAttribute('actor');
+        $actor = RequestUtil::getActor($request);
         $limit = $this->extractLimit($request);
         $offset = $this->getPostsOffset($request, $discussion, $limit);
 
@@ -118,7 +133,7 @@ class ShowDiscussionController extends AbstractShowController
      */
     private function loadPostIds(Discussion $discussion, User $actor)
     {
-        return $discussion->posts()->whereVisibleTo($actor)->orderBy('created_at')->pluck('id')->all();
+        return $discussion->posts()->whereVisibleTo($actor)->orderBy('number')->pluck('id')->all();
     }
 
     /**
@@ -148,9 +163,9 @@ class ShowDiscussionController extends AbstractShowController
     private function getPostsOffset(ServerRequestInterface $request, Discussion $discussion, $limit)
     {
         $queryParams = $request->getQueryParams();
-        $actor = $request->getAttribute('actor');
+        $actor = RequestUtil::getActor($request);
 
-        if (($near = array_get($queryParams, 'page.near')) > 1) {
+        if (($near = Arr::get($queryParams, 'page.near')) > 1) {
             $offset = $this->posts->getIndexForNumber($discussion->id, $near, $actor);
             $offset = max(0, $offset - $limit / 2);
         } else {
@@ -172,14 +187,42 @@ class ShowDiscussionController extends AbstractShowController
     {
         $query = $discussion->posts()->whereVisibleTo($actor);
 
-        $query->orderBy('created_at')->skip($offset)->take($limit)->with($include);
+        $query->orderBy('number')->skip($offset)->take($limit)->with($include);
 
-        $posts = $query->get()->all();
+        $posts = $query->get();
 
         foreach ($posts as $post) {
             $post->discussion = $discussion;
         }
 
-        return $posts;
+        $this->loadRelations($posts, $include);
+
+        return $posts->all();
+    }
+
+    protected function getRelationsToLoad(Collection $models): array
+    {
+        $addedRelations = parent::getRelationsToLoad($models);
+
+        if ($models->first() instanceof Discussion) {
+            return $addedRelations;
+        }
+
+        return $this->getPostRelationships($addedRelations);
+    }
+
+    protected function getRelationCallablesToLoad(Collection $models): array
+    {
+        $addedCallableRelations = parent::getRelationCallablesToLoad($models);
+
+        if ($models->first() instanceof Discussion) {
+            return $addedCallableRelations;
+        }
+
+        $postCallableRelationships = $this->getPostRelationships(array_keys($addedCallableRelations));
+
+        return array_intersect_key($addedCallableRelations, array_flip(array_map(function ($relation) {
+            return "posts.$relation";
+        }, $postCallableRelationships)));
     }
 }

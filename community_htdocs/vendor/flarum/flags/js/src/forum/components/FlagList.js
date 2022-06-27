@@ -1,22 +1,20 @@
-import Component from 'flarum/Component';
-import LoadingIndicator from 'flarum/components/LoadingIndicator';
-import avatar from 'flarum/helpers/avatar';
-import username from 'flarum/helpers/username';
-import icon from 'flarum/helpers/icon';
-import humanTime from 'flarum/helpers/humanTime';
+import app from 'flarum/forum/app';
+import Component from 'flarum/common/Component';
+import Link from 'flarum/common/components/Link';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import avatar from 'flarum/common/helpers/avatar';
+import username from 'flarum/common/helpers/username';
+import icon from 'flarum/common/helpers/icon';
+import humanTime from 'flarum/common/helpers/humanTime';
 
 export default class FlagList extends Component {
-  init() {
-    /**
-     * Whether or not the notifications are loading.
-     *
-     * @type {Boolean}
-     */
-    this.loading = false;
+  oninit(vnode) {
+    super.oninit(vnode);
+    this.state = this.attrs.state;
   }
 
   view() {
-    const flags = app.cache.flags || [];
+    const flags = this.state.cache || [];
 
     return (
       <div className="NotificationList FlagList">
@@ -25,60 +23,43 @@ export default class FlagList extends Component {
         </div>
         <div className="NotificationList-content">
           <ul className="NotificationGroup-content">
-            {flags.length
-              ? flags.map(flag => {
+            {flags.length ? (
+              flags.map((flag) => {
                 const post = flag.post();
 
                 return (
                   <li>
-                    <a href={app.route.post(post)} className="Notification Flag" config={function(element, isInitialized) {
-                      m.route.apply(this, arguments);
-
-                      if (!isInitialized) $(element).on('click', () => app.cache.flagIndex = post);
-                    }}>
+                    <Link
+                      href={app.route.post(post)}
+                      className="Notification Flag"
+                      onclick={(e) => {
+                        app.flags.index = post;
+                        e.redraw = false;
+                      }}
+                    >
                       {avatar(post.user())}
-                      {icon('fas fa-flag', {className: 'Notification-icon'})}
+                      {icon('fas fa-flag', { className: 'Notification-icon' })}
                       <span className="Notification-content">
-                        {app.translator.trans('flarum-flags.forum.flagged_posts.item_text', {username: username(post.user()), em: <em/>, discussion: post.discussion().title()})}
+                        {app.translator.trans('flarum-flags.forum.flagged_posts.item_text', {
+                          username: username(post.user()),
+                          em: <em />,
+                          discussion: post.discussion().title(),
+                        })}
                       </span>
                       {humanTime(flag.createdAt())}
-                      <div className="Notification-excerpt">
-                        {post.contentPlain()}
-                      </div>
-                    </a>
+                      <div className="Notification-excerpt">{post.contentPlain()}</div>
+                    </Link>
                   </li>
                 );
               })
-              : !this.loading
-                ? <div className="NotificationList-empty">{app.translator.trans('flarum-flags.forum.flagged_posts.empty_text')}</div>
-                : LoadingIndicator.component({className: 'LoadingIndicator--block'})}
+            ) : !this.state.loading ? (
+              <div className="NotificationList-empty">{app.translator.trans('flarum-flags.forum.flagged_posts.empty_text')}</div>
+            ) : (
+              LoadingIndicator.component({ className: 'LoadingIndicator--block' })
+            )}
           </ul>
         </div>
       </div>
     );
-  }
-
-  /**
-   * Load flags into the application's cache if they haven't already
-   * been loaded.
-   */
-  load() {
-    if (app.cache.flags && !app.session.user.attribute('newFlagCount')) {
-      return;
-    }
-
-    this.loading = true;
-    m.redraw();
-
-    app.store.find('flags')
-      .then(flags => {
-        app.session.user.pushAttributes({newFlagCount: 0});
-        app.cache.flags = flags.sort((a, b) => b.createdAt() - a.createdAt());
-      })
-      .catch(() => {})
-      .then(() => {
-        this.loading = false;
-        m.redraw();
-      });
   }
 }

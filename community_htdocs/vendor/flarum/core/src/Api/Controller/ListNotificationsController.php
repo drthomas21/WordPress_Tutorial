@@ -3,19 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Api\Serializer\NotificationSerializer;
 use Flarum\Discussion\Discussion;
+use Flarum\Http\RequestUtil;
 use Flarum\Http\UrlGenerator;
 use Flarum\Notification\NotificationRepository;
-use Flarum\User\Exception\PermissionDeniedException;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -65,11 +63,9 @@ class ListNotificationsController extends AbstractListController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $actor = $request->getAttribute('actor');
+        $actor = RequestUtil::getActor($request);
 
-        if ($actor->isGuest()) {
-            throw new PermissionDeniedException;
-        }
+        $actor->assertRegistered();
 
         $actor->markNotificationsAsRead()->save();
 
@@ -81,9 +77,11 @@ class ListNotificationsController extends AbstractListController
             $include[] = 'subject';
         }
 
-        $notifications = $this->notifications->findByUser($actor, $limit + 1, $offset)
-            ->load(array_diff($include, ['subject.discussion']))
-            ->all();
+        $notifications = $this->notifications->findByUser($actor, $limit + 1, $offset);
+
+        $this->loadRelations($notifications, array_diff($include, ['subject.discussion']), $request);
+
+        $notifications = $notifications->all();
 
         $areMoreResults = false;
 

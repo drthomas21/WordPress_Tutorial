@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Locale;
@@ -18,6 +16,17 @@ use Symfony\Component\Translation\Translator as BaseTranslator;
 class Translator extends BaseTranslator implements TranslatorContract
 {
     const REFERENCE_REGEX = '/^=>\s*([a-z0-9_\-\.]+)$/i';
+
+    public function get($key, array $replace = [], $locale = null)
+    {
+        return $this->trans($key, $replace, null, $locale);
+    }
+
+    public function choice($key, $number, array $replace = [], $locale = null)
+    {
+        // Symfony's translator uses ICU MessageFormat, which pluralizes based on arguments.
+        return $this->trans($key, $replace, null, $locale);
+    }
 
     /**
      * {@inheritdoc}
@@ -75,5 +84,10 @@ class Translator extends BaseTranslator implements TranslatorContract
         }
 
         return $translation;
+    }
+
+    public function setLocale($locale)
+    {
+        parent::setLocale($locale);
     }
 }

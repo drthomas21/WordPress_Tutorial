@@ -1,31 +1,30 @@
+import app from '../../forum/app';
 import Dropdown from '../../common/components/Dropdown';
 import icon from '../../common/helpers/icon';
+import classList from '../../common/utils/classList';
 import NotificationList from './NotificationList';
 
 export default class NotificationsDropdown extends Dropdown {
-  static initProps(props) {
-    props.className = props.className || 'NotificationsDropdown';
-    props.buttonClassName = props.buttonClassName || 'Button Button--flat';
-    props.menuClassName = props.menuClassName || 'Dropdown-menu--right';
-    props.label = props.label || app.translator.trans('core.forum.notifications.tooltip');
-    props.icon = props.icon || 'fas fa-bell';
+  static initAttrs(attrs) {
+    attrs.className = attrs.className || 'NotificationsDropdown';
+    attrs.buttonClassName = attrs.buttonClassName || 'Button Button--flat';
+    attrs.menuClassName = attrs.menuClassName || 'Dropdown-menu--right';
+    attrs.label = attrs.label || app.translator.trans('core.forum.notifications.tooltip');
+    attrs.icon = attrs.icon || 'fas fa-bell';
 
-    super.initProps(props);
-  }
+    // For best a11y support, both `title` and `aria-label` should be used
+    attrs.accessibleToggleLabel = attrs.accessibleToggleLabel || app.translator.trans('core.forum.notifications.toggle_dropdown_accessible_label');
 
-  init() {
-    super.init();
-
-    this.list = new NotificationList();
+    super.initAttrs(attrs);
   }
 
   getButton() {
     const newNotifications = this.getNewCount();
     const vdom = super.getButton();
 
-    vdom.attrs.title = this.props.label;
+    vdom.attrs.title = this.attrs.label;
 
-    vdom.attrs.className += (newNotifications ? ' new' : '');
+    vdom.attrs.className = classList(vdom.attrs.className, [newNotifications && 'new']);
     vdom.attrs.onclick = this.onclick.bind(this);
 
     return vdom;
@@ -35,16 +34,16 @@ export default class NotificationsDropdown extends Dropdown {
     const unread = this.getUnreadCount();
 
     return [
-      icon(this.props.icon, {className: 'Button-icon'}),
-      unread ? <span className="NotificationsDropdown-unread">{unread}</span> : '',
-      <span className="Button-label">{this.props.label}</span>
+      icon(this.attrs.icon, { className: 'Button-icon' }),
+      unread !== 0 && <span className="NotificationsDropdown-unread">{unread}</span>,
+      <span className="Button-label">{this.attrs.label}</span>,
     ];
   }
 
   getMenu() {
     return (
-      <div className={'Dropdown-menu ' + this.props.menuClassName} onclick={this.menuClick.bind(this)}>
-        {this.showing ? this.list.render() : ''}
+      <div className={classList('Dropdown-menu', this.attrs.menuClassName)} onclick={this.menuClick.bind(this)}>
+        {this.showing && NotificationList.component({ state: this.attrs.state })}
       </div>
     );
   }
@@ -53,12 +52,12 @@ export default class NotificationsDropdown extends Dropdown {
     if (app.drawer.isOpen()) {
       this.goToRoute();
     } else {
-      this.list.load();
+      this.attrs.state.load();
     }
   }
 
   goToRoute() {
-    m.route(app.route('notifications'));
+    m.route.set(app.route('notifications'));
   }
 
   getUnreadCount() {

@@ -3,36 +3,31 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Extension\ExtensionManager;
-use Flarum\User\AssertPermissionTrait;
+use Flarum\Bus\Dispatcher;
+use Flarum\Extension\Command\ToggleExtension;
+use Flarum\Http\RequestUtil;
+use Illuminate\Support\Arr;
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Diactoros\Response\EmptyResponse;
 
 class UpdateExtensionController implements RequestHandlerInterface
 {
-    use AssertPermissionTrait;
-
     /**
-     * @var ExtensionManager
+     * @var Dispatcher
      */
-    protected $extensions;
+    protected $bus;
 
-    /**
-     * @param ExtensionManager $extensions
-     */
-    public function __construct(ExtensionManager $extensions)
+    public function __construct(Dispatcher $bus)
     {
-        $this->extensions = $extensions;
+        $this->bus = $bus;
     }
 
     /**
@@ -40,16 +35,13 @@ class UpdateExtensionController implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->assertAdmin($request->getAttribute('actor'));
+        $actor = RequestUtil::getActor($request);
+        $enabled = (bool) (int) Arr::get($request->getParsedBody(), 'enabled');
+        $name = Arr::get($request->getQueryParams(), 'name');
 
-        $enabled = array_get($request->getParsedBody(), 'enabled');
-        $name = array_get($request->getQueryParams(), 'name');
-
-        if ($enabled === true) {
-            $this->extensions->enable($name);
-        } elseif ($enabled === false) {
-            $this->extensions->disable($name);
-        }
+        $this->bus->dispatch(
+            new ToggleExtension($actor, $name, $enabled)
+        );
 
         return new EmptyResponse;
     }

@@ -1,9 +1,7 @@
-Hey {!! $user->username !!}!
-
-{!! $blueprint->post->user->username !!} mentioned you in a post in {!! $blueprint->post->discussion->title !!}.
-
-{!! app()->url() !!}/d/{!! $blueprint->post->discussion_id !!}/{!! $blueprint->post->number !!}
-
----
-
-{!! strip_tags($blueprint->post->contentHtml) !!}
+{!! $translator->trans('flarum-mentions.email.user_mentioned.body', [
+'{recipient_display_name}' => $user->display_name,
+'{mentioner_display_name}' => $blueprint->post->user->display_name,
+'{title}' => $blueprint->post->discussion->title,
+'{url}' => $url->to('forum')->route('discussion', ['id' => $blueprint->post->discussion_id, 'near' => $blueprint->post->number]),
+'{content}' => $blueprint->post->content
+]) !!}

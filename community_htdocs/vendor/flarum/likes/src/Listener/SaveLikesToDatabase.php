@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Likes\Listener;
@@ -15,26 +13,13 @@ use Flarum\Likes\Event\PostWasLiked;
 use Flarum\Likes\Event\PostWasUnliked;
 use Flarum\Post\Event\Deleted;
 use Flarum\Post\Event\Saving;
-use Flarum\User\AssertPermissionTrait;
-use Illuminate\Contracts\Events\Dispatcher;
 
 class SaveLikesToDatabase
 {
-    use AssertPermissionTrait;
-
-    /**
-     * @param Dispatcher $events
-     */
-    public function subscribe(Dispatcher $events)
-    {
-        $events->listen(Saving::class, [$this, 'whenPostIsSaving']);
-        $events->listen(Deleted::class, [$this, 'whenPostIsDeleted']);
-    }
-
     /**
      * @param Saving $event
      */
-    public function whenPostIsSaving(Saving $event)
+    public static function whenPostIsSaving(Saving $event)
     {
         $post = $event->post;
         $data = $event->data;
@@ -43,7 +28,7 @@ class SaveLikesToDatabase
             $actor = $event->actor;
             $liked = (bool) $data['attributes']['isLiked'];
 
-            $this->assertCan($actor, 'like', $post);
+            $actor->assertCan('like', $post);
 
             $currentlyLiked = $post->likes()->where('user_id', $actor->id)->exists();
 
@@ -62,7 +47,7 @@ class SaveLikesToDatabase
     /**
      * @param Deleted $event
      */
-    public function whenPostIsDeleted(Deleted $event)
+    public static function whenPostIsDeleted(Deleted $event)
     {
         $event->post->likes()->detach();
     }

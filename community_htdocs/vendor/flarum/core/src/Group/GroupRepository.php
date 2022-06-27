@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Group;
@@ -23,7 +21,7 @@ class GroupRepository
      */
     public function query()
     {
-        return User::query();
+        return Group::query();
     }
 
     /**
@@ -41,19 +39,6 @@ class GroupRepository
         $query = Group::where('id', $id);
 
         return $this->scopeVisibleTo($query, $actor)->firstOrFail();
-    }
-
-    /**
-     * Find a group by name.
-     *
-     * @param string $name
-     * @return User|null
-     */
-    public function findByName($name, User $actor = null)
-    {
-        $query = Group::where('name_singular', $name)->orWhere('name_plural', $name);
-
-        return $this->scopeVisibleTo($query, $actor)->first();
     }
 
     /**

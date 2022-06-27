@@ -3,21 +3,31 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Notification\Command;
 
 use Carbon\Carbon;
+use Flarum\Notification\Event\Read;
 use Flarum\Notification\Notification;
-use Flarum\User\AssertPermissionTrait;
+use Illuminate\Contracts\Events\Dispatcher;
 
 class ReadNotificationHandler
 {
-    use AssertPermissionTrait;
+    /**
+     * @var Dispatcher
+     */
+    protected $events;
+
+    /**
+     * @param Dispatcher $events
+     */
+    public function __construct(Dispatcher $events)
+    {
+        $this->events = $events;
+    }
 
     /**
      * @param ReadNotification $command
@@ -28,7 +38,7 @@ class ReadNotificationHandler
     {
         $actor = $command->actor;
 
-        $this->assertRegistered($actor);
+        $actor->assertRegistered();
 
         $notification = Notification::where('user_id', $actor->id)->findOrFail($command->notificationId);
 
@@ -40,6 +50,8 @@ class ReadNotificationHandler
             ->update(['read_at' => Carbon::now()]);
 
         $notification->read_at = Carbon::now();
+
+        $this->events->dispatch(new Read($actor, $notification, Carbon::now()));
 
         return $notification;
     }

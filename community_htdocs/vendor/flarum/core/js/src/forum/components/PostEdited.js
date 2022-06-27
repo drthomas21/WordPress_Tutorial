@@ -1,44 +1,34 @@
+import app from '../../forum/app';
 import Component from '../../common/Component';
 import humanTime from '../../common/utils/humanTime';
-import extractText from '../../common/utils/extractText';
+import Tooltip from '../../common/components/Tooltip';
 
 /**
  * The `PostEdited` component displays information about when and by whom a post
  * was edited.
  *
- * ### Props
+ * ### Attrs
  *
  * - `post`
  */
 export default class PostEdited extends Component {
-  init() {
-    this.shouldUpdateTooltip = false;
-    this.oldEditedInfo = null;
+  oninit(vnode) {
+    super.oninit(vnode);
   }
 
   view() {
-    const post = this.props.post;
+    const post = this.attrs.post;
     const editedUser = post.editedUser();
-    const editedInfo = extractText(app.translator.trans(
-      'core.forum.post.edited_tooltip',
-      {user: editedUser, ago: humanTime(post.editedAt())}
-    ));
-    if (editedInfo !== this.oldEditedInfo) {
-      this.shouldUpdateTooltip = true;
-      this.oldEditedInfo = editedInfo;
-    }
+    const editedInfo = app.translator.trans('core.forum.post.edited_tooltip', { user: editedUser, ago: humanTime(post.editedAt()) });
 
     return (
-      <span className="PostEdited" title={editedInfo}>
-        {app.translator.trans('core.forum.post.edited_text')}
-      </span>
+      <Tooltip text={editedInfo}>
+        <span class="PostEdited">{app.translator.trans('core.forum.post.edited_text')}</span>
+      </Tooltip>
     );
   }
 
-  config(isInitialized) {
-    if (this.shouldUpdateTooltip) {
-      this.$().tooltip('destroy').tooltip();
-      this.shouldUpdateTooltip = false;
-    }
+  oncreate(vnode) {
+    super.oncreate(vnode);
   }
 }

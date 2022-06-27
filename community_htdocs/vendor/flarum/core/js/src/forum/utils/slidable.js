@@ -4,12 +4,13 @@
  * controls.
  *
  * It relies on the element having children with particular CSS classes.
- * TODO: document
  *
- * @param {DOMElement} element
- * @return {Object}
- * @property {function} reset Revert the slider to its original position. This
- *     should be called, for example, when a controls dropdown is closed.
+ * The function returns a record with a `reset` proeprty. This is a function
+ * which reverts the slider to its original position. This should be called,
+ * for example, when a controls dropdown is closed.
+ *
+ * @param {HTMLElement | SVGElement | Element} element
+ * @return {{ reset : () => void }}
  */
 export default function slidable(element) {
   const $element = $(element);
@@ -27,20 +28,20 @@ export default function slidable(element) {
   /**
    * Animate the slider to a new position.
    *
-   * @param {Integer} newPos
-   * @param {Object} [options]
+   * @param {number} newPos
+   * @param {Partial<JQueryAnimationOptions>} [options]
    */
   const animatePos = (newPos, options = {}) => {
     // Since we can't animate the transform property with jQuery, we'll use a
     // bit of a workaround. We set up the animation with a step function that
     // will set the transform property, but then we animate an unused property
     // (background-position-x) with jQuery.
-    options.duration = options.duration || 'fast';
-    options.step = function(x) {
+    options.duration ||= 'fast';
+    options.step = function (x) {
       $(this).css('transform', 'translate(' + x + 'px, 0)');
     };
 
-    $element.find('.Slidable-content').animate({'background-position-x': newPos}, options);
+    $element.find('.Slidable-content').animate({ 'background-position-x': newPos }, options);
   };
 
   /**
@@ -48,17 +49,18 @@ export default function slidable(element) {
    */
   const reset = () => {
     animatePos(0, {
-      complete: function() {
+      complete: function () {
         $element.removeClass('sliding');
         $underneathLeft.hide();
         $underneathRight.hide();
         isSliding = false;
-      }
+      },
     });
   };
 
-  $element.find('.Slidable-content')
-    .on('touchstart', function(e) {
+  $element
+    .find('.Slidable-content')
+    .on('touchstart', function (e) {
       // Update the references to the elements underneath the slider, provided
       // they're not disabled.
       $underneathLeft = $element.find('.Slidable-underneath--left:not(.disabled)');
@@ -71,7 +73,7 @@ export default function slidable(element) {
       pos = 0;
     })
 
-    .on('touchmove', function(e) {
+    .on('touchmove', function (e) {
       const newX = e.originalEvent.targetTouches[0].clientX;
       const newY = e.originalEvent.targetTouches[0].clientY;
 
@@ -118,13 +120,13 @@ export default function slidable(element) {
       }
     })
 
-    .on('touchend', function() {
+    .on('touchend', function () {
       // If the user releases the touch and the slider is past the threshold
       // position on either side, then we will activate the control for that
       // side. We will also animate the slider's position all the way to the
       // other side, or back to its original position, depending on whether or
       // not the side is 'elastic'.
-      const activate = $underneath => {
+      const activate = ($underneath) => {
         $underneath.click();
 
         if ($underneath.hasClass('Slidable-underneath--elastic')) {
@@ -146,5 +148,5 @@ export default function slidable(element) {
       isSliding = false;
     });
 
-  return {reset};
-};
+  return { reset };
+}

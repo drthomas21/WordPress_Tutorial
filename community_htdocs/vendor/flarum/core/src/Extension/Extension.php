@@ -3,20 +3,24 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Extension;
 
-use Flarum\Extend\Compat;
+use Flarum\Database\Migrator;
 use Flarum\Extend\LifecycleInterface;
+use Flarum\Extension\Exception\ExtensionBootError;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Filesystem\Filesystem as FilesystemInterface;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use s9e\TextFormatter\Bundles\Fatdown;
+use Throwable;
 
 /**
  * @property string $name
@@ -51,11 +55,12 @@ class Extension implements Arrayable
      * Unique Id of the extension.
      *
      * @info    Identical to the directory in the extensions directory.
-     * @example flarum_suspend
+     * @example flarum-suspend
      *
      * @var string
      */
     protected $id;
+
     /**
      * The directory of this extension.
      *
@@ -69,6 +74,21 @@ class Extension implements Arrayable
      * @var array
      */
     protected $composerJson;
+
+    /**
+     * The IDs of all Flarum extensions that this extension depends on.
+     *
+     * @var string[]
+     */
+    protected $extensionDependencyIds;
+
+    /**
+     * The IDs of all Flarum extensions that this extension should be booted after
+     * if enabled.
+     *
+     * @var string[]
+     */
+    protected $optionalDependencyIds;
 
     /**
      * Whether the extension is installed.
@@ -95,27 +115,33 @@ class Extension implements Arrayable
         $this->assignId();
     }
 
+    protected static function nameToId($name)
+    {
+        [$vendor, $package] = explode('/', $name);
+        $package = str_replace(['flarum-ext-', 'flarum-'], '', $package);
+
+        return "$vendor-$package";
+    }
+
     /**
      * Assigns the id for the extension used globally.
      */
     protected function assignId()
     {
-        list($vendor, $package) = explode('/', $this->name);
-        $package = str_replace(['flarum-ext-', 'flarum-'], '', $package);
-        $this->id = "$vendor-$package";
+        $this->id = static::nameToId($this->name);
     }
 
-    public function extend(Container $app)
+    /**
+     * @internal
+     */
+    public function extend(Container $container)
     {
         foreach ($this->getExtenders() as $extender) {
-            // If an extension has not yet switched to the new extend.php
-            // format, it might return a function (or more of them). We wrap
-            // these in a Compat extender to enjoy an unique interface.
-            if ($extender instanceof \Closure || is_string($extender)) {
-                $extender = new Compat($extender);
+            try {
+                $extender->extend($container, $this);
+            } catch (Throwable $e) {
+                throw new ExtensionBootError($this, $extender, $e);
             }
-
-            $extender->extend($app, $this);
         }
     }
 
@@ -138,7 +164,7 @@ class Extension implements Arrayable
     /**
      * Dot notation getter for composer.json attributes.
      *
-     * @see https://laravel.com/docs/5.1/helpers#arrays
+     * @see https://laravel.com/docs/8.x/helpers#arrays
      *
      * @param $name
      * @return mixed
@@ -151,6 +177,8 @@ class Extension implements Arrayable
     /**
      * @param bool $installed
      * @return Extension
+     *
+     * @internal
      */
     public function setInstalled($installed)
     {
@@ -170,12 +198,44 @@ class Extension implements Arrayable
     /**
      * @param string $version
      * @return Extension
+     *
+     * @internal
      */
     public function setVersion($version)
     {
         $this->version = $version;
 
         return $this;
+    }
+
+    /**
+     * Get the list of flarum extensions that this extension depends on.
+     *
+     * @param array $extensionSet: An associative array where keys are the composer package names
+     *                             of installed extensions. Used to figure out which dependencies
+     *                             are flarum extensions.
+     * @param array $enabledIds:   An associative array where keys are the composer package names
+     *                             of enabled extensions. Used to figure out optional dependencies.
+     *
+     * @internal
+     */
+    public function calculateDependencies($extensionSet)
+    {
+        $this->extensionDependencyIds = (new Collection(Arr::get($this->composerJson, 'require', [])))
+            ->keys()
+            ->filter(function ($key) use ($extensionSet) {
+                return array_key_exists($key, $extensionSet);
+            })
+            ->map(function ($key) {
+                return static::nameToId($key);
+            })
+            ->toArray();
+
+        $this->optionalDependencyIds = (new Collection(Arr::get($this->composerJson, 'extra.flarum-extension.optional-dependencies', [])))
+            ->map(function ($key) {
+                return static::nameToId($key);
+            })
+            ->toArray();
     }
 
     /**
@@ -217,6 +277,30 @@ class Extension implements Arrayable
         return $icon;
     }
 
+    public function getIconStyles(): string
+    {
+        $properties = $this->getIcon();
+
+        if (empty($properties)) {
+            return '';
+        }
+
+        $properties = array_filter($properties, function ($item) {
+            return is_string($item);
+        });
+
+        unset($properties['name']);
+
+        return implode(';', array_map(function (string $property, string $value) {
+            $property = Str::kebab($property);
+
+            return "$property: $value";
+        }, array_keys($properties), $properties));
+    }
+
+    /**
+     * @internal
+     */
     public function enable(Container $container)
     {
         foreach ($this->getLifecycleExtenders() as $extender) {
@@ -224,6 +308,9 @@ class Extension implements Arrayable
         }
     }
 
+    /**
+     * @internal
+     */
     public function disable(Container $container)
     {
         foreach ($this->getLifecycleExtenders() as $extender) {
@@ -244,9 +331,38 @@ class Extension implements Arrayable
     /**
      * @return string
      */
+    public function getTitle()
+    {
+        return $this->composerJsonAttribute('extra.flarum-extension.title');
+    }
+
+    /**
+     * @return string
+     */
     public function getPath()
     {
         return $this->path;
+    }
+
+    /**
+     * The IDs of all Flarum extensions that this extension depends on.
+     *
+     * @return array
+     */
+    public function getExtensionDependencyIds(): array
+    {
+        return $this->extensionDependencyIds;
+    }
+
+    /**
+     * The IDs of all Flarum extensions that this extension should be booted after
+     * if enabled.
+     *
+     * @return array
+     */
+    public function getOptionalDependencyIds(): array
+    {
+        return $this->optionalDependencyIds;
     }
 
     private function getExtenders(): array
@@ -263,7 +379,7 @@ class Extension implements Arrayable
             $extenders = [$extenders];
         }
 
-        return array_flatten($extenders);
+        return Arr::flatten($extenders);
     }
 
     /**
@@ -287,14 +403,50 @@ class Extension implements Arrayable
             return $filename;
         }
 
-        // To give extension authors some time to migrate to the new extension
-        // format, we will also fallback to the old bootstrap.php name. Consider
-        // this feature deprecated.
-        $deprecatedFilename = "{$this->path}/bootstrap.php";
+        return null;
+    }
 
-        if (file_exists($deprecatedFilename)) {
-            return $deprecatedFilename;
+    /**
+     * Compile a list of links for this extension.
+     */
+    public function getLinks()
+    {
+        $links = [];
+
+        if (($sourceUrl = $this->composerJsonAttribute('source.url')) || ($sourceUrl = $this->composerJsonAttribute('support.source'))) {
+            $links['source'] = $sourceUrl;
         }
+
+        if (($discussUrl = $this->composerJsonAttribute('support.forum'))) {
+            $links['discuss'] = $discussUrl;
+        }
+
+        if (($documentationUrl = $this->composerJsonAttribute('support.docs'))) {
+            $links['documentation'] = $documentationUrl;
+        }
+
+        if (($websiteUrl = $this->composerJsonAttribute('homepage'))) {
+            $links['website'] = $websiteUrl;
+        }
+
+        if (($supportEmail = $this->composerJsonAttribute('support.email'))) {
+            $links['support'] = "mailto:$supportEmail";
+        }
+
+        if (($funding = $this->composerJsonAttribute('funding')) && is_array($funding) && ($fundingUrl = Arr::get($funding, '0.url'))) {
+            $links['donate'] = $fundingUrl;
+        }
+
+        $links['authors'] = [];
+
+        foreach ((array) $this->composerJsonAttribute('authors') as $author) {
+            $links['authors'][] = [
+                'name' => Arr::get($author, 'name'),
+                'link' => Arr::get($author, 'homepage') ?? (Arr::get($author, 'email') ? 'mailto:'.Arr::get($author, 'email') : ''),
+            ];
+        }
+
+        return array_merge($links, $this->composerJsonAttribute('extra.flarum-extension.links') ?? []);
     }
 
     /**
@@ -308,6 +460,25 @@ class Extension implements Arrayable
     }
 
     /**
+     * @internal
+     */
+    public function copyAssetsTo(FilesystemInterface $target)
+    {
+        if (! $this->hasAssets()) {
+            return;
+        }
+
+        $source = new Filesystem();
+
+        $assetFiles = $source->allFiles("$this->path/assets");
+
+        foreach ($assetFiles as $fullPath) {
+            $relPath = substr($fullPath, strlen("$this->path/assets"));
+            $target->put("extensions/$this->id/$relPath", $source->get($fullPath));
+        }
+    }
+
+    /**
      * Tests whether the extension has migrations.
      *
      * @return bool
@@ -318,6 +489,22 @@ class Extension implements Arrayable
     }
 
     /**
+     * @internal
+     */
+    public function migrate(Migrator $migrator, $direction = 'up')
+    {
+        if (! $this->hasMigrations()) {
+            return;
+        }
+
+        if ($direction == 'up') {
+            return $migrator->run($this->getPath().'/migrations', $this);
+        } else {
+            return $migrator->reset($this->getPath().'/migrations', $this);
+        }
+    }
+
+    /**
      * Generates an array result for the object.
      *
      * @return array
@@ -325,12 +512,39 @@ class Extension implements Arrayable
     public function toArray()
     {
         return (array) array_merge([
-            'id'            => $this->getId(),
-            'version'       => $this->getVersion(),
-            'path'          => $this->path,
-            'icon'          => $this->getIcon(),
-            'hasAssets'     => $this->hasAssets(),
-            'hasMigrations' => $this->hasMigrations(),
+            'id'                     => $this->getId(),
+            'version'                => $this->getVersion(),
+            'path'                   => $this->getPath(),
+            'icon'                   => $this->getIcon(),
+            'hasAssets'              => $this->hasAssets(),
+            'hasMigrations'          => $this->hasMigrations(),
+            'extensionDependencyIds' => $this->getExtensionDependencyIds(),
+            'optionalDependencyIds'  => $this->getOptionalDependencyIds(),
+            'links'                  => $this->getLinks(),
         ], $this->composerJson);
+    }
+
+    /**
+     * Gets the rendered contents of the extension README file as a HTML string.
+     *
+     * @return string|null
+     */
+    public function getReadme(): ?string
+    {
+        $content = null;
+
+        if (file_exists($file = "$this->path/README.md")) {
+            $content = file_get_contents($file);
+        } elseif (file_exists($file = "$this->path/README")) {
+            $content = file_get_contents($file);
+        }
+
+        if ($content) {
+            $xml = Fatdown::parse($content);
+
+            return Fatdown::render($xml);
+        }
+
+        return null;
     }
 }

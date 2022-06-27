@@ -3,16 +3,16 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Discussion\Command\DeleteDiscussion;
+use Flarum\Http\RequestUtil;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 
 class DeleteDiscussionController extends AbstractDeleteController
@@ -35,8 +35,8 @@ class DeleteDiscussionController extends AbstractDeleteController
      */
     protected function delete(ServerRequestInterface $request)
     {
-        $id = array_get($request->getQueryParams(), 'id');
-        $actor = $request->getAttribute('actor');
+        $id = Arr::get($request->getQueryParams(), 'id');
+        $actor = RequestUtil::getActor($request);
         $input = $request->getParsedBody();
 
         $this->bus->dispatch(

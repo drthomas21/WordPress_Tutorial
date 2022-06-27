@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags;
@@ -18,29 +16,51 @@ use Flarum\Group\Permission;
 use Flarum\User\User;
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $slug
+ * @property string $description
+ * @property string $color
+ * @property string $background_path
+ * @property string $background_mode
+ * @property int $position
+ * @property int $parent_id
+ * @property string $default_sort
+ * @property bool $is_restricted
+ * @property bool $is_hidden
+ * @property int $discussion_count
+ * @property \Carbon\Carbon $last_posted_at
+ * @property int $last_posted_discussion_id
+ * @property int $last_posted_user_id
+ * @property string $icon
+ * @property TagState
+ */
 class Tag extends AbstractModel
 {
     use ScopeVisibilityTrait;
 
-    /**
-     * {@inheritdoc}
-     */
     protected $table = 'tags';
 
-    /**
-     * {@inheritdoc}
-     */
     protected $dates = ['last_posted_at'];
 
-    /**
-     * {@inheritdoc}
-     */
+    protected $casts = [
+        'is_hidden' => 'bool',
+        'is_restricted' => 'bool'
+    ];
+
     public static function boot()
     {
         parent::boot();
 
-        static::deleted(function ($tag) {
-            Permission::where('permission', 'like', "tag{$tag->id}.%")->delete();
+        static::saved(function (self $tag) {
+            if ($tag->wasUnrestricted()) {
+                $tag->deletePermissions();
+            }
+        });
+
+        static::deleted(function (self $tag) {
+            $tag->deletePermissions();
         });
     }
 
@@ -51,10 +71,11 @@ class Tag extends AbstractModel
      * @param string $slug
      * @param string $description
      * @param string $color
+     * @param string $icon
      * @param bool $isHidden
      * @return static
      */
-    public static function build($name, $slug, $description, $color, $isHidden)
+    public static function build($name, $slug, $description, $color, $icon, $isHidden)
     {
         $tag = new static;
 
@@ -62,68 +83,53 @@ class Tag extends AbstractModel
         $tag->slug = $slug;
         $tag->description = $description;
         $tag->color = $color;
+        $tag->icon = $icon;
         $tag->is_hidden = (bool) $isHidden;
 
         return $tag;
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function parent()
     {
         return $this->belongsTo(self::class);
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+
     public function lastPostedDiscussion()
     {
         return $this->belongsTo(Discussion::class, 'last_posted_discussion_id');
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function lastPostedUser()
     {
         return $this->belongsTo(User::class, 'last_posted_user_id');
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
     public function discussions()
     {
         return $this->belongsToMany(Discussion::class);
     }
 
-    /**
-     * Refresh a tag's last discussion details.
-     *
-     * @return $this
-     */
     public function refreshLastPostedDiscussion()
     {
-        if ($lastPostedDiscussion = $this->discussions()->latest('last_posted_at')->first()) {
+        if ($lastPostedDiscussion = $this->discussions()->where('is_private', false)->whereNull('hidden_at')->latest('last_posted_at')->first()) {
             $this->setLastPostedDiscussion($lastPostedDiscussion);
+        } else {
+            $this->setLastPostedDiscussion(null);
         }
 
         return $this;
     }
 
-    /**
-     * Set the tag's last discussion details.
-     *
-     * @param Discussion $discussion
-     * @return $this
-     */
-    public function setLastPostedDiscussion(Discussion $discussion)
+    public function setLastPostedDiscussion(Discussion $discussion = null)
     {
-        $this->last_posted_at = $discussion->last_posted_at;
-        $this->last_posted_discussion_id = $discussion->id;
-        $this->last_posted_user_id = $discussion->last_posted_user_id;
+        $this->last_posted_at = optional($discussion)->last_posted_at;
+        $this->last_posted_discussion_id = optional($discussion)->id;
+        $this->last_posted_user_id = optional($discussion)->last_posted_user_id;
 
         return $this;
     }
@@ -173,58 +179,76 @@ class Tag extends AbstractModel
     }
 
     /**
-     * @param User $user
-     * @param string $permission
-     * @param bool $condition
-     * @return array
+     * Has this tag been unrestricted recently?
+     *
+     * @return bool
      */
-    protected static function getIdsWherePermission(User $user, $permission, $condition = true)
+    public function wasUnrestricted()
     {
-        static $tags;
-
-        if (! $tags) {
-            $tags = static::with('parent')->get();
-        }
-
-        $ids = [];
-        $hasGlobalPermission = $user->hasPermission($permission);
-
-        $canForTag = function (Tag $tag) use ($user, $permission, $hasGlobalPermission) {
-            return ($hasGlobalPermission && ! $tag->is_restricted) || ($tag->is_restricted && $user->hasPermission('tag'.$tag->id.'.'.$permission));
-        };
-
-        foreach ($tags as $tag) {
-            $can = $canForTag($tag);
-
-            if ($can && $tag->parent) {
-                $can = $canForTag($tag->parent);
-            }
-
-            if ($can === $condition) {
-                $ids[] = $tag->id;
-            }
-        }
-
-        return $ids;
+        return ! $this->is_restricted && $this->wasChanged('is_restricted');
     }
 
     /**
-     * @param User $user
-     * @param string $permission
-     * @return array
+     * Delete all permissions belonging to this tag.
      */
-    public static function getIdsWhereCan(User $user, $permission)
+    public function deletePermissions()
     {
-        return static::getIdsWherePermission($user, $permission, true);
+        Permission::where('permission', 'like', "tag{$this->id}.%")->delete();
     }
 
-    /**
-     * @param User $user
-     * @param string $permission
-     * @return array
-     */
-    public static function getIdsWhereCannot(User $user, $permission)
+    protected static function buildPermissionSubquery($base, $isAdmin, $hasGlobalPermission, $tagIdsWithPermission)
     {
-        return static::getIdsWherePermission($user, $permission, false);
+        $base
+            ->from('tags as perm_tags')
+            ->select('perm_tags.id');
+
+        // This needs to be a special case, as `tagIdsWithPermissions`
+        // won't include admin perms (which are all perms by default).
+        if ($isAdmin) {
+            return;
+        }
+
+        $base->where(function ($query) use ($tagIdsWithPermission) {
+            $query
+                ->where('perm_tags.is_restricted', true)
+                ->whereIn('perm_tags.id', $tagIdsWithPermission);
+        });
+
+        if ($hasGlobalPermission) {
+            $base->orWhere('perm_tags.is_restricted', false);
+        }
+    }
+
+    public function scopeWhereHasPermission(Builder $query, User $user, string $currPermission): Builder
+    {
+        $hasGlobalPermission = $user->hasPermission($currPermission);
+        $isAdmin = $user->isAdmin();
+        $allPermissions = $user->getPermissions();
+
+        $tagIdsWithPermission = collect($allPermissions)
+            ->filter(function ($permission) use ($currPermission) {
+                return substr($permission, 0, 3) === 'tag' && strpos($permission, $currPermission) !== false;
+            })
+            ->map(function ($permission) {
+                $scopeFragment = explode('.', $permission, 2)[0];
+
+                return substr($scopeFragment, 3);
+            })
+            ->values();
+
+        return $query
+            ->where(function ($query) use ($isAdmin, $hasGlobalPermission, $tagIdsWithPermission) {
+                $query
+                    ->whereIn('tags.id', function ($query) use ($isAdmin, $hasGlobalPermission, $tagIdsWithPermission) {
+                        static::buildPermissionSubquery($query, $isAdmin, $hasGlobalPermission, $tagIdsWithPermission);
+                    })
+                    ->where(function ($query) use ($isAdmin, $hasGlobalPermission, $tagIdsWithPermission) {
+                        $query
+                            ->whereIn('tags.parent_id', function ($query) use ($isAdmin, $hasGlobalPermission, $tagIdsWithPermission) {
+                                static::buildPermissionSubquery($query, $isAdmin, $hasGlobalPermission, $tagIdsWithPermission);
+                            })
+                            ->orWhere('tags.parent_id', null);
+                    });
+            });
     }
 }

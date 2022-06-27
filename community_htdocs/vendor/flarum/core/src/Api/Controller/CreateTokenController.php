@@ -3,23 +3,23 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Http\AccessToken;
-use Flarum\User\Exception\PermissionDeniedException;
+use Flarum\Http\RememberAccessToken;
+use Flarum\Http\SessionAccessToken;
+use Flarum\User\Exception\NotAuthenticatedException;
 use Flarum\User\UserRepository;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
+use Illuminate\Support\Arr;
+use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Diactoros\Response\JsonResponse;
 
 class CreateTokenController implements RequestHandlerInterface
 {
@@ -57,18 +57,23 @@ class CreateTokenController implements RequestHandlerInterface
     {
         $body = $request->getParsedBody();
 
-        $identification = array_get($body, 'identification');
-        $password = array_get($body, 'password');
-        $lifetime = array_get($body, 'lifetime', 3600);
+        $identification = Arr::get($body, 'identification');
+        $password = Arr::get($body, 'password');
 
         $user = $this->users->findByIdentification($identification);
 
         if (! $user || ! $user->checkPassword($password)) {
-            throw new PermissionDeniedException;
+            throw new NotAuthenticatedException;
         }
 
-        $token = AccessToken::generate($user->id, $lifetime);
-        $token->save();
+        if (Arr::get($body, 'remember')) {
+            $token = RememberAccessToken::generate($user->id);
+        } else {
+            $token = SessionAccessToken::generate($user->id);
+        }
+
+        // We do a first update here to log the IP/agent of the token creator, even if the token is never used afterwards
+        $token->touch($request);
 
         return new JsonResponse([
             'token' => $token->token,

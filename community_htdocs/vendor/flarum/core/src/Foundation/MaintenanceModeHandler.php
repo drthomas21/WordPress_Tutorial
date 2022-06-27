@@ -3,20 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation;
 
+use Illuminate\Support\Str;
+use Laminas\Diactoros\Response\HtmlResponse;
+use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobscure\JsonApi\Document;
-use Zend\Diactoros\Response\HtmlResponse;
-use Zend\Diactoros\Response\JsonResponse;
 
 class MaintenanceModeHandler implements RequestHandlerInterface
 {
@@ -38,7 +37,7 @@ class MaintenanceModeHandler implements RequestHandlerInterface
 
     private function isApiRequest(ServerRequestInterface $request): bool
     {
-        return str_contains(
+        return Str::contains(
             $request->getHeaderLine('Accept'),
             'application/vnd.api+json'
         );

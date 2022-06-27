@@ -3,20 +3,20 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Auth;
 
+use Flarum\Http\RememberAccessToken;
 use Flarum\Http\Rememberer;
 use Flarum\User\LoginProvider;
 use Flarum\User\RegistrationToken;
 use Flarum\User\User;
+use Illuminate\Support\Arr;
+use Laminas\Diactoros\Response\HtmlResponse;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\Response\HtmlResponse;
 
 class ResponseFactory
 {
@@ -43,7 +43,7 @@ class ResponseFactory
 
         $provided = $registration->getProvided();
 
-        if (! empty($provided['email']) && $user = User::where(array_only($provided, 'email'))->first()) {
+        if (! empty($provided['email']) && $user = User::where(Arr::only($provided, 'email'))->first()) {
             $user->loginProviders()->create(compact('provider', 'identifier'));
 
             return $this->makeLoggedInResponse($user);
@@ -56,7 +56,7 @@ class ResponseFactory
             $provided,
             $registration->getSuggested(),
             [
-                'token' => $token->id,
+                'token' => $token->token,
                 'provided' => array_keys($provided)
             ]
         ));
@@ -76,6 +76,8 @@ class ResponseFactory
     {
         $response = $this->makeResponse(['loggedIn' => true]);
 
-        return $this->rememberer->rememberUser($response, $user->id);
+        $token = RememberAccessToken::generate($user->id);
+
+        return $this->rememberer->remember($response, $token);
     }
 }

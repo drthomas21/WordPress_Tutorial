@@ -3,31 +3,14 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Serializer;
 
-use Flarum\User\Gate;
-
 class UserSerializer extends BasicUserSerializer
 {
-    /**
-     * @var \Flarum\User\Gate
-     */
-    protected $gate;
-
-    /**
-     * @param Gate $gate
-     */
-    public function __construct(Gate $gate)
-    {
-        $this->gate = $gate;
-    }
-
     /**
      * @param \Flarum\User\User $user
      * @return array
@@ -36,16 +19,14 @@ class UserSerializer extends BasicUserSerializer
     {
         $attributes = parent::getDefaultAttributes($user);
 
-        $gate = $this->gate->forUser($this->actor);
-
-        $canEdit = $gate->allows('edit', $user);
-
         $attributes += [
-            'joinTime'         => $this->formatDate($user->joined_at),
-            'discussionCount'  => (int) $user->discussion_count,
-            'commentCount'     => (int) $user->comment_count,
-            'canEdit'          => $canEdit,
-            'canDelete'        => $gate->allows('delete', $user),
+            'joinTime'           => $this->formatDate($user->joined_at),
+            'discussionCount'    => (int) $user->discussion_count,
+            'commentCount'       => (int) $user->comment_count,
+            'canEdit'            => $this->actor->can('edit', $user),
+            'canEditCredentials' => $this->actor->can('editCredentials', $user),
+            'canEditGroups'      => $this->actor->can('editGroups', $user),
+            'canDelete'          => $this->actor->can('delete', $user),
         ];
 
         if ($user->getPreference('discloseOnline') || $this->actor->can('viewLastSeenAt', $user)) {
@@ -54,7 +35,7 @@ class UserSerializer extends BasicUserSerializer
             ];
         }
 
-        if ($canEdit || $this->actor->id === $user->id) {
+        if ($attributes['canEditCredentials'] || $this->actor->id === $user->id) {
             $attributes += [
                 'isEmailConfirmed' => (bool) $user->is_email_confirmed,
                 'email'            => $user->email

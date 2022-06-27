@@ -3,36 +3,79 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Access;
 
-use Flarum\Event\GetPermission;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\Tags\Tag;
-use Illuminate\Contracts\Events\Dispatcher;
+use Flarum\User\Access\AbstractPolicy;
+use Flarum\User\User;
 
-class GlobalPolicy
+class GlobalPolicy extends AbstractPolicy
 {
     /**
-     * @param Dispatcher $events
+     * @var SettingsRepositoryInterface
      */
-    public function subscribe(Dispatcher $events)
+    protected $settings;
+
+    public function __construct(SettingsRepositoryInterface $settings)
     {
-        $events->listen(GetPermission::class, [$this, 'grantGlobalDiscussionPermissions']);
+        $this->settings = $settings;
     }
 
     /**
-     * @param GetPermission $event
-     * @return bool
+     * @param Flarum\User\User $actor
+     * @param string $ability
+     * @return bool|void
      */
-    public function grantGlobalDiscussionPermissions(GetPermission $event)
+    public function can(User $actor, string $ability)
     {
-        if (in_array($event->ability, ['viewDiscussions', 'startDiscussion']) && is_null($event->model)) {
-            return ! empty(Tag::getIdsWhereCan($event->actor, $event->ability));
+        static $enoughPrimary;
+        static $enoughSecondary;
+
+        if ($ability === 'startDiscussion'
+            && $actor->hasPermission($ability)
+            && $actor->hasPermission('bypassTagCounts')) {
+            return $this->allow();
+        }
+
+        if (in_array($ability, ['viewForum', 'startDiscussion'])) {
+            if (! isset($enoughPrimary[$actor->id][$ability])) {
+                $primaryTagsWhereNeedsPermission = $this->settings->get('flarum-tags.min_primary_tags');
+                $primaryTagsWhereHasPermission = Tag::whereHasPermission($actor, $ability)
+                    ->where('tags.position', '!=', null)
+                    ->count();
+
+                if ($ability === 'viewForum') {
+                    $primaryTagsCount = Tag::query()->where('position', '!=', null)->count();
+                    $enoughPrimary[$actor->id][$ability] = $primaryTagsWhereHasPermission >= min($primaryTagsCount, $primaryTagsWhereNeedsPermission);
+                } else {
+                    $enoughPrimary[$actor->id][$ability] = $primaryTagsWhereHasPermission >= $primaryTagsWhereNeedsPermission;
+                }
+            }
+
+            if (! isset($enoughSecondary[$actor->id][$ability])) {
+                $secondaryTagsWhereNeedsPermission = $this->settings->get('flarum-tags.min_secondary_tags');
+                $secondaryTagsWhereHasPermission = Tag::whereHasPermission($actor, $ability)
+                    ->where('tags.position', '=', null)
+                    ->count();
+
+                if ($ability === 'viewForum') {
+                    $secondaryTagsCount = Tag::query()->where(['position' => null, 'parent_id' => null])->count();
+                    $enoughSecondary[$actor->id][$ability] = $secondaryTagsWhereHasPermission >= min($secondaryTagsCount, $secondaryTagsWhereNeedsPermission);
+                } else {
+                    $enoughSecondary[$actor->id][$ability] = $secondaryTagsWhereHasPermission >= $secondaryTagsWhereNeedsPermission;
+                }
+            }
+
+            if ($enoughPrimary[$actor->id][$ability] && $enoughSecondary[$actor->id][$ability]) {
+                return $this->allow();
+            } else {
+                return $this->deny();
+            }
         }
     }
 }

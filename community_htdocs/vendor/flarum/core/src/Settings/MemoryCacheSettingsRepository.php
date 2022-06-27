@@ -3,13 +3,13 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Settings;
+
+use Illuminate\Support\Arr;
 
 class MemoryCacheSettingsRepository implements SettingsRepositoryInterface
 {
@@ -24,7 +24,7 @@ class MemoryCacheSettingsRepository implements SettingsRepositoryInterface
         $this->inner = $inner;
     }
 
-    public function all()
+    public function all(): array
     {
         if (! $this->isCached) {
             $this->cache = $this->inner->all();
@@ -39,7 +39,7 @@ class MemoryCacheSettingsRepository implements SettingsRepositoryInterface
         if (array_key_exists($key, $this->cache)) {
             return $this->cache[$key];
         } elseif (! $this->isCached) {
-            return array_get($this->all(), $key, $default);
+            return Arr::get($this->all(), $key, $default);
         }
 
         return $default;

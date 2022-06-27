@@ -3,20 +3,20 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Content;
 
 use Flarum\Api\Client;
-use Flarum\Api\Controller\ListDiscussionsController;
 use Flarum\Frontend\Document;
-use Flarum\User\User;
+use Flarum\Http\UrlGenerator;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\View\Factory;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class Index
 {
@@ -31,63 +31,80 @@ class Index
     protected $view;
 
     /**
+     * @var SettingsRepositoryInterface
+     */
+    protected $settings;
+
+    /**
+     * @var UrlGenerator
+     */
+    protected $url;
+
+    /**
+     * @var TranslatorInterface
+     */
+    protected $translator;
+
+    /**
      * @param Client $api
      * @param Factory $view
+     * @param SettingsRepositoryInterface $settings
+     * @param UrlGenerator $url
+     * @param TranslatorInterface $translator
      */
-    public function __construct(Client $api, Factory $view)
+    public function __construct(Client $api, Factory $view, SettingsRepositoryInterface $settings, UrlGenerator $url, TranslatorInterface $translator)
     {
         $this->api = $api;
         $this->view = $view;
+        $this->settings = $settings;
+        $this->url = $url;
+        $this->translator = $translator;
     }
 
     public function __invoke(Document $document, Request $request)
     {
         $queryParams = $request->getQueryParams();
 
-        $sort = array_pull($queryParams, 'sort');
-        $q = array_pull($queryParams, 'q');
-        $page = array_pull($queryParams, 'page', 1);
+        $sort = Arr::pull($queryParams, 'sort');
+        $q = Arr::pull($queryParams, 'q');
+        $page = max(1, intval(Arr::pull($queryParams, 'page')));
+        $filters = Arr::pull($queryParams, 'filter', []);
 
-        $sortMap = $this->getSortMap();
+        $sortMap = resolve('flarum.forum.discussions.sortmap');
 
         $params = [
             'sort' => $sort && isset($sortMap[$sort]) ? $sortMap[$sort] : '',
-            'filter' => compact('q'),
+            'filter' => $filters,
             'page' => ['offset' => ($page - 1) * 20, 'limit' => 20]
         ];
 
-        $apiDocument = $this->getApiDocument($request->getAttribute('actor'), $params);
+        if ($q) {
+            $params['filter']['q'] = $q;
+        }
 
-        $document->content = $this->view->make('flarum.forum::frontend.content.index', compact('apiDocument', 'page', 'forum'));
+        $apiDocument = $this->getApiDocument($request, $params);
+        $defaultRoute = $this->settings->get('default_route');
+
+        $document->title = $this->translator->trans('core.forum.index.meta_title_text');
+        $document->content = $this->view->make('flarum.forum::frontend.content.index', compact('apiDocument', 'page'));
         $document->payload['apiDocument'] = $apiDocument;
+
+        $document->canonicalUrl = $this->url->to('forum')->base().($defaultRoute === '/all' ? '' : $request->getUri()->getPath());
+        $document->page = $page;
+        $document->hasNextPage = isset($apiDocument->links->next);
 
         return $document;
     }
 
     /**
-     * Get a map of sort query param values and their API sort params.
-     *
-     * @return array
-     */
-    private function getSortMap()
-    {
-        return [
-            'latest' => '-lastPostedAt',
-            'top' => '-commentCount',
-            'newest' => '-createdAt',
-            'oldest' => 'createdAt'
-        ];
-    }
-
-    /**
      * Get the result of an API request to list discussions.
      *
-     * @param User $actor
+     * @param Request $request
      * @param array $params
      * @return object
      */
-    private function getApiDocument(User $actor, array $params)
+    protected function getApiDocument(Request $request, array $params)
     {
-        return json_decode($this->api->send(ListDiscussionsController::class, $actor, $params)->getBody());
+        return json_decode($this->api->withParentRequest($request)->withQueryParams($params)->get('/discussions')->getBody());
     }
 }

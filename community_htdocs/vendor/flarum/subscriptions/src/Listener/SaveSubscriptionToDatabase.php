@@ -3,43 +3,26 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Subscriptions\Listener;
 
 use Flarum\Discussion\Event\Saving;
-use Flarum\User\AssertPermissionTrait;
-use Illuminate\Contracts\Events\Dispatcher;
 
 class SaveSubscriptionToDatabase
 {
-    use AssertPermissionTrait;
-
-    /**
-     * @param Dispatcher $events
-     */
-    public function subscribe(Dispatcher $events)
-    {
-        $events->listen(Saving::class, [$this, 'whenSaving']);
-    }
-
-    /**
-     * @param Saving $event
-     */
-    public function whenSaving(Saving $event)
+    public function handle(Saving $event)
     {
         $discussion = $event->discussion;
         $data = $event->data;
 
-        if (isset($data['attributes']['subscription'])) {
+        if (array_key_exists('subscription', $data['attributes'])) {
             $actor = $event->actor;
             $subscription = $data['attributes']['subscription'];
 
-            $this->assertRegistered($actor);
+            $actor->assertRegistered();
 
             $state = $discussion->stateFor($actor);
 

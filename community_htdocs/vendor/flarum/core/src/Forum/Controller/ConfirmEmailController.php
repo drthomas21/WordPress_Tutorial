@@ -3,24 +3,22 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Controller;
 
-use Flarum\Foundation\Application;
+use Flarum\Http\SessionAccessToken;
 use Flarum\Http\SessionAuthenticator;
+use Flarum\Http\UrlGenerator;
 use Flarum\User\Command\ConfirmEmail;
-use Flarum\User\Exception\InvalidConfirmationTokenException;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Support\Arr;
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Diactoros\Response\HtmlResponse;
-use Zend\Diactoros\Response\RedirectResponse;
 
 class ConfirmEmailController implements RequestHandlerInterface
 {
@@ -30,9 +28,9 @@ class ConfirmEmailController implements RequestHandlerInterface
     protected $bus;
 
     /**
-     * @var Application
+     * @var UrlGenerator
      */
-    protected $app;
+    protected $url;
 
     /**
      * @var SessionAuthenticator
@@ -41,13 +39,13 @@ class ConfirmEmailController implements RequestHandlerInterface
 
     /**
      * @param Dispatcher $bus
-     * @param Application $app
+     * @param UrlGenerator $url
      * @param SessionAuthenticator $authenticator
      */
-    public function __construct(Dispatcher $bus, Application $app, SessionAuthenticator $authenticator)
+    public function __construct(Dispatcher $bus, UrlGenerator $url, SessionAuthenticator $authenticator)
     {
         $this->bus = $bus;
-        $this->app = $app;
+        $this->url = $url;
         $this->authenticator = $authenticator;
     }
 
@@ -57,19 +55,16 @@ class ConfirmEmailController implements RequestHandlerInterface
      */
     public function handle(Request $request): ResponseInterface
     {
-        try {
-            $token = array_get($request->getQueryParams(), 'token');
+        $token = Arr::get($request->getQueryParams(), 'token');
 
-            $user = $this->bus->dispatch(
-                new ConfirmEmail($token)
-            );
-        } catch (InvalidConfirmationTokenException $e) {
-            return new HtmlResponse('Invalid confirmation token');
-        }
+        $user = $this->bus->dispatch(
+            new ConfirmEmail($token)
+        );
 
         $session = $request->getAttribute('session');
-        $this->authenticator->logIn($session, $user->id);
+        $token = SessionAccessToken::generate($user->id);
+        $this->authenticator->logIn($session, $token);
 
-        return new RedirectResponse($this->app->url());
+        return new RedirectResponse($this->url->to('forum')->base());
     }
 }

@@ -1,4 +1,5 @@
-import PostsUserPage from 'flarum/components/PostsUserPage';
+import app from 'flarum/forum/app';
+import PostsUserPage from 'flarum/forum/components/PostsUserPage';
 
 /**
  * The `MentionsUserPage` component shows post which user Mentioned at
@@ -15,10 +16,10 @@ export default class MentionsUserPage extends PostsUserPage {
     return app.store.find('posts', {
       filter: {
         type: 'comment',
-        mentioned: this.user.id()
+        mentioned: this.user.id(),
       },
-      page: {offset, limit: this.loadLimit},
-      sort: '-createdAt'
+      page: { offset, limit: this.loadLimit },
+      sort: '-createdAt',
     });
   }
 }

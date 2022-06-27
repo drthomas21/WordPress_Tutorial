@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend\Compiler;
@@ -14,11 +12,11 @@ namespace Flarum\Frontend\Compiler;
 use axy\sourcemap\SourceMap;
 use Flarum\Frontend\Compiler\Source\FileSource;
 
+/**
+ * @internal
+ */
 class JsCompiler extends RevisionCompiler
 {
-    /**
-     * {@inheritdoc}
-     */
     protected function save(string $file, array $sources): bool
     {
         if (empty($sources)) {
@@ -52,26 +50,19 @@ class JsCompiler extends RevisionCompiler
         }
 
         // Add a comment to the end of our file to point to the sourcemap
-        // we just constructed. We will then write the JS file, save the
-        // map to a temporary location, and then move it to the asset dir.
+        // we just constructed. We will then store the JS file and the map
+        // in our asset directory.
         $output[] = '//# sourceMappingURL='.$this->assetsDir->url($mapFile);
 
         $this->assetsDir->put($file, implode("\n", $output));
-
-        $mapTemp = tempnam(sys_get_temp_dir(), $mapFile);
-        $map->save($mapTemp);
-        $this->assetsDir->put($mapFile, file_get_contents($mapTemp));
-        @unlink($mapTemp);
+        $this->assetsDir->put($mapFile, json_encode($map, JSON_UNESCAPED_SLASHES));
 
         return true;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function format(string $string): string
     {
-        return preg_replace('~//# sourceMappingURL.*$~m', '', $string).";\n";
+        return preg_replace('~//# sourceMappingURL.*$~m', '', $string)."\n";
     }
 
     /**

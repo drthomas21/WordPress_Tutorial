@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Group\Command;
@@ -15,13 +13,12 @@ use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Group\Event\Saving;
 use Flarum\Group\Group;
 use Flarum\Group\GroupValidator;
-use Flarum\User\AssertPermissionTrait;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 
 class CreateGroupHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\Group\GroupValidator
@@ -48,13 +45,15 @@ class CreateGroupHandler
         $actor = $command->actor;
         $data = $command->data;
 
-        $this->assertCan($actor, 'createGroup');
+        $actor->assertRegistered();
+        $actor->assertCan('createGroup');
 
         $group = Group::build(
-            array_get($data, 'attributes.nameSingular'),
-            array_get($data, 'attributes.namePlural'),
-            array_get($data, 'attributes.color'),
-            array_get($data, 'attributes.icon')
+            Arr::get($data, 'attributes.nameSingular'),
+            Arr::get($data, 'attributes.namePlural'),
+            Arr::get($data, 'attributes.color'),
+            Arr::get($data, 'attributes.icon'),
+            Arr::get($data, 'attributes.isHidden', false)
         );
 
         $this->events->dispatch(

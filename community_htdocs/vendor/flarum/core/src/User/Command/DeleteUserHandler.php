@@ -3,16 +3,13 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User\Command;
 
 use Flarum\Foundation\DispatchEventsTrait;
-use Flarum\User\AssertPermissionTrait;
 use Flarum\User\Event\Deleting;
 use Flarum\User\Exception\PermissionDeniedException;
 use Flarum\User\UserRepository;
@@ -21,7 +18,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 class DeleteUserHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var UserRepository
@@ -48,7 +44,7 @@ class DeleteUserHandler
         $actor = $command->actor;
         $user = $this->users->findOrFail($command->userId, $actor);
 
-        $this->assertCan($actor, 'delete', $user);
+        $actor->assertCan('delete', $user);
 
         $this->events->dispatch(
             new Deleting($user, $actor, $command->data)

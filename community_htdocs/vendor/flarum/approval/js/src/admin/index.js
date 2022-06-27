@@ -1,9 +1,8 @@
-import { extend } from 'flarum/extend';
-import app from 'flarum/app';
-import PermissionGrid from 'flarum/components/PermissionGrid';
+import { extend } from 'flarum/common/extend';
+import app from 'flarum/admin/app';
 
 app.initializers.add('flarum-approval', () => {
-  extend(app, 'getRequiredPermissions', function(required, permission) {
+  extend(app, 'getRequiredPermissions', function (required, permission) {
     if (permission === 'discussion.startWithoutApproval') {
       required.push('startDiscussion');
     }
@@ -12,27 +11,33 @@ app.initializers.add('flarum-approval', () => {
     }
   });
 
-  extend(PermissionGrid.prototype, 'startItems', items => {
-    items.add('startDiscussionsWithoutApproval', {
-      icon: 'fas fa-check',
-      label: app.translator.trans('flarum-approval.admin.permissions.start_discussions_without_approval_label'),
-      permission: 'discussion.startWithoutApproval'
-    }, 95);
-  });
-
-  extend(PermissionGrid.prototype, 'replyItems', items => {
-    items.add('replyWithoutApproval', {
-      icon: 'fas fa-check',
-      label: app.translator.trans('flarum-approval.admin.permissions.reply_without_approval_label'),
-      permission: 'discussion.replyWithoutApproval'
-    }, 95);
-  });
-
-  extend(PermissionGrid.prototype, 'moderateItems', items => {
-    items.add('approvePosts', {
-      icon: 'fas fa-check',
-      label: app.translator.trans('flarum-approval.admin.permissions.approve_posts_label'),
-      permission: 'discussion.approvePosts'
-    }, 65);
-  });
+  app.extensionData
+    .for('flarum-approval')
+    .registerPermission(
+      {
+        icon: 'fas fa-check',
+        label: app.translator.trans('flarum-approval.admin.permissions.start_discussions_without_approval_label'),
+        permission: 'discussion.startWithoutApproval',
+      },
+      'start',
+      95
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-check',
+        label: app.translator.trans('flarum-approval.admin.permissions.reply_without_approval_label'),
+        permission: 'discussion.replyWithoutApproval',
+      },
+      'reply',
+      95
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-check',
+        label: app.translator.trans('flarum-approval.admin.permissions.approve_posts_label'),
+        permission: 'discussion.approvePosts',
+      },
+      'moderate',
+      65
+    );
 });

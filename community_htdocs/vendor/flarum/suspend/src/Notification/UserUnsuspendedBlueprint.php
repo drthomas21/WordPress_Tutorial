@@ -3,18 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Suspend\Notification;
 
 use Flarum\Notification\Blueprint\BlueprintInterface;
+use Flarum\Notification\MailableInterface;
 use Flarum\User\User;
+use Illuminate\Support\Carbon;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-class UserUnsuspendedBlueprint implements BlueprintInterface
+class UserUnsuspendedBlueprint implements BlueprintInterface, MailableInterface
 {
     /**
      * @var User
@@ -22,18 +23,11 @@ class UserUnsuspendedBlueprint implements BlueprintInterface
     public $user;
 
     /**
-     * @var User
-     */
-    public $actor;
-
-    /**
      * @param User $user
-     * @param User $actor
      */
-    public function __construct(User $user, User $actor)
+    public function __construct(User $user)
     {
         $this->user = $user;
-        $this->actor = $actor;
     }
 
     /**
@@ -49,7 +43,7 @@ class UserUnsuspendedBlueprint implements BlueprintInterface
      */
     public function getFromUser()
     {
-        return $this->actor;
+        return null;
     }
 
     /**
@@ -57,6 +51,7 @@ class UserUnsuspendedBlueprint implements BlueprintInterface
      */
     public function getData()
     {
+        return Carbon::now();
     }
 
     /**
@@ -73,5 +68,21 @@ class UserUnsuspendedBlueprint implements BlueprintInterface
     public static function getSubjectModel()
     {
         return User::class;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getEmailView()
+    {
+        return ['text' => 'flarum-suspend::emails.unsuspended'];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getEmailSubject(TranslatorInterface $translator)
+    {
+        return $translator->trans('flarum-suspend.email.unsuspended.subject');
     }
 }

@@ -3,21 +3,22 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Install\Console;
 
 use Exception;
+use Flarum\Install\AdminUser;
+use Flarum\Install\BaseUrl;
+use Flarum\Install\DatabaseConfig;
+use Flarum\Install\Installation;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Yaml\Yaml;
 
 class FileDataProvider implements DataProviderInterface
 {
-    protected $default;
     protected $debug = false;
     protected $baseUrl = null;
     protected $databaseConfiguration = [];
@@ -26,9 +27,6 @@ class FileDataProvider implements DataProviderInterface
 
     public function __construct(InputInterface $input)
     {
-        // Get default configuration
-        $this->default = new DefaultsDataProvider();
-
         // Get configuration file path
         $configurationFile = $input->getOption('file');
 
@@ -46,7 +44,7 @@ class FileDataProvider implements DataProviderInterface
 
             // Define configuration variables
             $this->debug = $configuration['debug'] ?? false;
-            $this->baseUrl = isset($configuration['baseUrl']) ? rtrim($configuration['baseUrl'], '/') : null;
+            $this->baseUrl = $configuration['baseUrl'] ?? 'http://flarum.localhost';
             $this->databaseConfiguration = $configuration['databaseConfiguration'] ?? [];
             $this->adminUser = $configuration['adminUser'] ?? [];
             $this->settings = $configuration['settings'] ?? [];
@@ -55,28 +53,35 @@ class FileDataProvider implements DataProviderInterface
         }
     }
 
-    public function getDatabaseConfiguration()
+    public function configure(Installation $installation): Installation
     {
-        return $this->databaseConfiguration + $this->default->getDatabaseConfiguration();
+        return $installation
+            ->debugMode($this->debug)
+            ->baseUrl(BaseUrl::fromString($this->baseUrl))
+            ->databaseConfig($this->getDatabaseConfiguration())
+            ->adminUser($this->getAdminUser())
+            ->settings($this->settings);
     }
 
-    public function getBaseUrl()
+    private function getDatabaseConfiguration(): DatabaseConfig
     {
-        return (! is_null($this->baseUrl)) ? $this->baseUrl : $this->default->getBaseUrl();
+        return new DatabaseConfig(
+            $this->databaseConfiguration['driver'] ?? 'mysql',
+            $this->databaseConfiguration['host'] ?? 'localhost',
+            $this->databaseConfiguration['port'] ?? 3306,
+            $this->databaseConfiguration['database'] ?? 'flarum',
+            $this->databaseConfiguration['username'] ?? 'root',
+            $this->databaseConfiguration['password'] ?? '',
+            $this->databaseConfiguration['prefix'] ?? ''
+        );
     }
 
-    public function getAdminUser()
+    private function getAdminUser(): AdminUser
     {
-        return $this->adminUser + $this->default->getAdminUser();
-    }
-
-    public function getSettings()
-    {
-        return $this->settings + $this->default->getSettings();
-    }
-
-    public function isDebugMode(): bool
-    {
-        return $this->debug;
+        return new AdminUser(
+            $this->adminUser['username'] ?? 'admin',
+            $this->adminUser['password'] ?? 'password',
+            $this->adminUser['email'] ?? 'admin@example.com'
+        );
     }
 }

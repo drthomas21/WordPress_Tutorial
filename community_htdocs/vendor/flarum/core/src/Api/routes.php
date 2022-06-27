@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 use Flarum\Api\Controller;
@@ -226,6 +224,13 @@ return function (RouteCollection $map, RouteHandlerFactory $route) {
         $route->toController(Controller\CreateGroupController::class)
     );
 
+    // Show a single group
+    $map->get(
+        '/groups/{id}',
+        'groups.show',
+        $route->toController(Controller\ShowGroupController::class)
+    );
+
     // Edit a group
     $map->patch(
         '/groups/{id}',
@@ -258,6 +263,13 @@ return function (RouteCollection $map, RouteHandlerFactory $route) {
         '/extensions/{name}',
         'extensions.delete',
         $route->toController(Controller\UninstallExtensionController::class)
+    );
+
+    // Get readme for an extension
+    $map->get(
+        '/extension-readmes/{name}',
+        'extension-readmes.show',
+        $route->toController(Controller\ShowExtensionReadmeController::class)
     );
 
     // Update settings
@@ -307,5 +319,19 @@ return function (RouteCollection $map, RouteHandlerFactory $route) {
         '/cache',
         'cache.clear',
         $route->toController(Controller\ClearCacheController::class)
+    );
+
+    // List available mail drivers, available fields and validation status
+    $map->get(
+        '/mail/settings',
+        'mailSettings.index',
+        $route->toController(Controller\ShowMailSettingsController::class)
+    );
+
+    // Send test mail post
+    $map->post(
+        '/mail/test',
+        'mailTest',
+        $route->toController(Controller\SendTestMailController::class)
     );
 };

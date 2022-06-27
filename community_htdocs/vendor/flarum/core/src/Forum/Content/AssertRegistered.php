@@ -3,24 +3,20 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Content;
 
 use Flarum\Frontend\Document;
-use Flarum\User\AssertPermissionTrait;
+use Flarum\Http\RequestUtil;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class AssertRegistered
 {
-    use AssertPermissionTrait;
-
     public function __invoke(Document $document, Request $request)
     {
-        $this->assertRegistered($request->getAttribute('actor'));
+        RequestUtil::getActor($request)->assertRegistered();
     }
 }

@@ -3,20 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Http\Exception;
 
 use Exception;
+use Flarum\Foundation\KnownError;
 
-class MethodNotAllowedException extends Exception
+class MethodNotAllowedException extends Exception implements KnownError
 {
-    public function __construct($message = null, $code = 405, Exception $previous = null)
+    public function getType(): string
     {
-        parent::__construct($message, $code, $previous);
+        return 'method_not_allowed';
     }
 }

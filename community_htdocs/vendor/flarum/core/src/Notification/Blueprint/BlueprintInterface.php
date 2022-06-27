@@ -3,13 +3,14 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Notification\Blueprint;
+
+use Flarum\Database\AbstractModel;
+use Flarum\User\User;
 
 /**
  * A notification BlueprintInterface, when instantiated, represents a notification about
@@ -21,14 +22,14 @@ interface BlueprintInterface
     /**
      * Get the user that sent the notification.
      *
-     * @return \Flarum\User\User|null
+     * @return User|null
      */
     public function getFromUser();
 
     /**
      * Get the model that is the subject of this activity.
      *
-     * @return \Flarum\Database\AbstractModel|null
+     * @return AbstractModel|null
      */
     public function getSubject();
 

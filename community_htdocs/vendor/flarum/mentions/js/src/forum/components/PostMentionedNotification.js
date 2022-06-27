@@ -1,5 +1,6 @@
-import Notification from 'flarum/components/Notification';
-import { truncate } from 'flarum/utils/string';
+import app from 'flarum/forum/app';
+import Notification from 'flarum/forum/components/Notification';
+import { truncate } from 'flarum/common/utils/string';
 
 export default class PostMentionedNotification extends Notification {
   icon() {
@@ -7,7 +8,7 @@ export default class PostMentionedNotification extends Notification {
   }
 
   href() {
-    const notification = this.props.notification;
+    const notification = this.attrs.notification;
     const post = notification.subject();
     const content = notification.content();
 
@@ -15,13 +16,13 @@ export default class PostMentionedNotification extends Notification {
   }
 
   content() {
-    const notification = this.props.notification;
+    const notification = this.attrs.notification;
     const user = notification.fromUser();
 
-    return app.translator.transChoice('flarum-mentions.forum.notifications.post_mentioned_text', 1, {user});
+    return app.translator.trans('flarum-mentions.forum.notifications.post_mentioned_text', { user, count: 1 });
   }
 
   excerpt() {
-    return truncate(this.props.notification.subject().contentPlain(), 200);
+    return truncate(this.attrs.notification.subject().contentPlain(), 200);
   }
 }

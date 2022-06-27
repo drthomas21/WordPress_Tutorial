@@ -3,17 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
 use Flarum\Api\Serializer\CurrentUserSerializer;
 use Flarum\Api\Serializer\UserSerializer;
+use Flarum\Http\RequestUtil;
+use Flarum\Http\SlugManager;
+use Flarum\User\User;
 use Flarum\User\UserRepository;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -30,15 +32,22 @@ class ShowUserController extends AbstractShowController
     public $include = ['groups'];
 
     /**
-     * @var \Flarum\User\UserRepository
+     * @var SlugManager
+     */
+    protected $slugManager;
+
+    /**
+     * @var UserRepository
      */
     protected $users;
 
     /**
-     * @param \Flarum\User\UserRepository $users
+     * @param SlugManager $slugManager
+     * @param UserRepository $users
      */
-    public function __construct(UserRepository $users)
+    public function __construct(SlugManager $slugManager, UserRepository $users)
     {
+        $this->slugManager = $slugManager;
         $this->users = $users;
     }
 
@@ -47,18 +56,19 @@ class ShowUserController extends AbstractShowController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $id = array_get($request->getQueryParams(), 'id');
+        $id = Arr::get($request->getQueryParams(), 'id');
+        $actor = RequestUtil::getActor($request);
 
-        if (! is_numeric($id)) {
-            $id = $this->users->getIdForUsername($id);
+        if (Arr::get($request->getQueryParams(), 'bySlug', false)) {
+            $user = $this->slugManager->forResource(User::class)->fromSlug($id, $actor);
+        } else {
+            $user = $this->users->findOrFail($id, $actor);
         }
 
-        $actor = $request->getAttribute('actor');
-
-        if ($actor->id == $id) {
+        if ($actor->id === $user->id) {
             $this->serializer = CurrentUserSerializer::class;
         }
 
-        return $this->users->findOrFail($id, $actor);
+        return $user;
     }
 }

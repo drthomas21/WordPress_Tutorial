@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Forum\Content;
@@ -15,8 +13,8 @@ use Flarum\Api\Client;
 use Flarum\Frontend\Document;
 use Flarum\Http\Exception\RouteNotFoundException;
 use Flarum\Http\UrlGenerator;
-use Flarum\User\User;
 use Illuminate\Contracts\View\Factory;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class Discussion
@@ -51,21 +49,23 @@ class Discussion
     public function __invoke(Document $document, Request $request)
     {
         $queryParams = $request->getQueryParams();
-        $page = max(1, array_get($queryParams, 'page'));
+        $id = Arr::get($queryParams, 'id');
+        $near = intval(Arr::get($queryParams, 'near'));
+        $page = max(1, intval(Arr::get($queryParams, 'page')), 1 + intdiv($near, 20));
 
         $params = [
-            'id' => (int) array_get($queryParams, 'id'),
+            'id' => $id,
             'page' => [
-                'near' => array_get($queryParams, 'near'),
+                'near' => $near,
                 'offset' => ($page - 1) * 20,
                 'limit' => 20
             ]
         ];
 
-        $apiDocument = $this->getApiDocument($request->getAttribute('actor'), $params);
+        $apiDocument = $this->getApiDocument($request, $id, $params);
 
         $getResource = function ($link) use ($apiDocument) {
-            return array_first($apiDocument->included, function ($value) use ($link) {
+            return Arr::first($apiDocument->included, function ($value) use ($link) {
                 return $value->type === $link->type && $value->id === $link->id;
             });
         };
@@ -73,12 +73,16 @@ class Discussion
         $url = function ($newQueryParams) use ($queryParams, $apiDocument) {
             $newQueryParams = array_merge($queryParams, $newQueryParams);
             unset($newQueryParams['id']);
+            unset($newQueryParams['near']);
+
+            if (Arr::get($newQueryParams, 'page') == 1) {
+                unset($newQueryParams['page']);
+            }
+
             $queryString = http_build_query($newQueryParams);
 
-            $idWithSlug = $apiDocument->data->id.(trim($apiDocument->data->attributes->slug) ? '-'.$apiDocument->data->attributes->slug : '');
-
-            return $this->url->to('forum')->route('discussion', ['id' => $idWithSlug]).
-            ($queryString ? '?'.$queryString : '');
+            return $this->url->to('forum')->route('discussion', ['id' => $apiDocument->data->attributes->slug]).
+                ($queryString ? '?'.$queryString : '');
         };
 
         $posts = [];
@@ -89,10 +93,16 @@ class Discussion
             }
         }
 
+        $hasPrevPage = $page > 1;
+        $hasNextPage = $page < 1 + intval($apiDocument->data->attributes->commentCount / 20);
+
         $document->title = $apiDocument->data->attributes->title;
-        $document->canonicalUrl = $url([]);
-        $document->content = $this->view->make('flarum.forum::frontend.content.discussion', compact('apiDocument', 'page', 'getResource', 'posts', 'url'));
+        $document->content = $this->view->make('flarum.forum::frontend.content.discussion', compact('apiDocument', 'page', 'hasPrevPage', 'hasNextPage', 'getResource', 'posts', 'url'));
         $document->payload['apiDocument'] = $apiDocument;
+
+        $document->canonicalUrl = $url([]);
+        $document->page = $page;
+        $document->hasNextPage = $hasNextPage;
 
         return $document;
     }
@@ -100,14 +110,15 @@ class Discussion
     /**
      * Get the result of an API request to show a discussion.
      *
-     * @param User $actor
-     * @param array $params
-     * @return object
      * @throws RouteNotFoundException
      */
-    protected function getApiDocument(User $actor, array $params)
+    protected function getApiDocument(Request $request, string $id, array $params)
     {
-        $response = $this->api->send('Flarum\Api\Controller\ShowDiscussionController', $actor, $params);
+        $params['bySlug'] = true;
+        $response = $this->api
+            ->withParentRequest($request)
+            ->withQueryParams($params)
+            ->get("/discussions/$id");
         $statusCode = $response->getStatusCode();
 
         if ($statusCode === 404) {

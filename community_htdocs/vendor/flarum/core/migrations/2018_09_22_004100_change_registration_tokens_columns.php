@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 use Illuminate\Database\Schema\Blueprint;
@@ -24,7 +22,7 @@ return [
     },
 
     'down' => function (Builder $schema) {
-        $schema->table('auth_tokens', function (Blueprint $table) {
+        $schema->table('registration_tokens', function (Blueprint $table) {
             $table->dropColumn('provider', 'identifier', 'user_attributes');
 
             $table->string('payload', 150)->change();

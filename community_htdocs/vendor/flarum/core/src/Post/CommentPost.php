@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post;
@@ -18,12 +16,12 @@ use Flarum\Post\Event\Posted;
 use Flarum\Post\Event\Restored;
 use Flarum\Post\Event\Revised;
 use Flarum\User\User;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * A standard comment in a discussion.
  *
  * @property string $parsed_content
- * @property string $content_html
  */
 class CommentPost extends Post
 {
@@ -130,7 +128,7 @@ class CommentPost extends Post
      */
     public function getContentAttribute($value)
     {
-        return static::$formatter->unparse($value);
+        return static::$formatter->unparse($value, $this);
     }
 
     /**
@@ -166,11 +164,12 @@ class CommentPost extends Post
     /**
      * Get the content rendered as HTML.
      *
+     * @param ServerRequestInterface $request
      * @return string
      */
-    public function getContentHtmlAttribute()
+    public function formatContent(ServerRequestInterface $request = null)
     {
-        return static::$formatter->render($this->attributes['content'], $this);
+        return static::$formatter->render($this->attributes['content'], $this, $request);
     }
 
     /**

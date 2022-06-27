@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend\Compiler;
@@ -15,16 +13,21 @@ use Flarum\Frontend\Compiler\Source\SourceCollector;
 use Flarum\Frontend\Compiler\Source\SourceInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 
+/**
+ * @internal
+ */
 class RevisionCompiler implements CompilerInterface
 {
-    const REV_MANIFEST = 'rev-manifest.json';
-
     const EMPTY_REVISION = 'empty';
 
     /**
      * @var Filesystem
      */
     protected $assetsDir;
+    /**
+     * @var VersionerInterface
+     */
+    protected $versioner;
 
     /**
      * @var string
@@ -39,63 +42,47 @@ class RevisionCompiler implements CompilerInterface
     /**
      * @param Filesystem $assetsDir
      * @param string $filename
+     * @param VersionerInterface|null $versioner @deprecated nullable will be removed at v2.0
      */
-    public function __construct(Filesystem $assetsDir, string $filename)
+    public function __construct(Filesystem $assetsDir, string $filename, VersionerInterface $versioner = null)
     {
         $this->assetsDir = $assetsDir;
         $this->filename = $filename;
+        $this->versioner = $versioner ?: new FileVersioner($assetsDir);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getFilename(): string
     {
         return $this->filename;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function setFilename(string $filename)
     {
         $this->filename = $filename;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function commit()
+    public function commit(bool $force = false)
     {
         $sources = $this->getSources();
 
-        $oldRevision = $this->getRevision();
+        $oldRevision = $this->versioner->getRevision($this->filename);
 
         $newRevision = $this->calculateRevision($sources);
 
-        $oldFile = $oldRevision ? $this->getFilenameForRevision($oldRevision) : null;
-
-        if ($oldRevision !== $newRevision || ($oldFile && ! $this->assetsDir->has($oldFile))) {
-            $newFile = $this->getFilenameForRevision($newRevision);
-
-            if (! $this->save($newFile, $sources)) {
+        // In case the previous and current revisions do not match
+        // Or no file was written yet, let's save the file to disk.
+        if ($force || $oldRevision !== $newRevision || ! $this->assetsDir->has($this->filename)) {
+            if (! $this->save($this->filename, $sources)) {
                 // If no file was written (because the sources were empty), we
                 // will set the revision to a special value so that we can tell
                 // that this file does not have a URL.
                 $newRevision = static::EMPTY_REVISION;
             }
 
-            $this->putRevision($newRevision);
-
-            if ($oldFile) {
-                $this->delete($oldFile);
-            }
+            $this->versioner->putRevision($this->filename, $newRevision);
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function addSources(callable $callback)
     {
         $this->sourcesCallbacks[] = $callback;
@@ -104,7 +91,7 @@ class RevisionCompiler implements CompilerInterface
     /**
      * @return SourceInterface[]
      */
-    protected function getSources()
+    protected function getSources(): array
     {
         $sources = new SourceCollector;
 
@@ -115,17 +102,14 @@ class RevisionCompiler implements CompilerInterface
         return $sources->getSources();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getUrl(): ?string
     {
-        $revision = $this->getRevision();
+        $revision = $this->versioner->getRevision($this->filename);
 
         if (! $revision) {
             $this->commit();
 
-            $revision = $this->getRevision();
+            $revision = $this->versioner->getRevision($this->filename);
 
             if (! $revision) {
                 return null;
@@ -136,9 +120,11 @@ class RevisionCompiler implements CompilerInterface
             return null;
         }
 
-        $file = $this->getFilenameForRevision($revision);
+        $url = $this->assetsDir->url($this->filename);
 
-        return $this->assetsDir->url($file);
+        // Append revision as GET param to signify that there's been
+        // a change to the file and it should be refreshed.
+        return "$url?v=$revision";
     }
 
     /**
@@ -182,53 +168,6 @@ class RevisionCompiler implements CompilerInterface
     }
 
     /**
-     * Get the filename for the given revision.
-     *
-     * @param string $revision
-     * @return string
-     */
-    protected function getFilenameForRevision(string $revision): string
-    {
-        $ext = pathinfo($this->filename, PATHINFO_EXTENSION);
-
-        return substr_replace($this->filename, '-'.$revision, -strlen($ext) - 1, 0);
-    }
-
-    /**
-     * @return string|null
-     */
-    protected function getRevision(): ?string
-    {
-        if ($this->assetsDir->has(static::REV_MANIFEST)) {
-            $manifest = json_decode($this->assetsDir->read(static::REV_MANIFEST), true);
-
-            return array_get($manifest, $this->filename);
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string|null $revision
-     */
-    protected function putRevision(?string $revision)
-    {
-        if ($this->assetsDir->has(static::REV_MANIFEST)) {
-            $manifest = json_decode($this->assetsDir->read(static::REV_MANIFEST), true);
-        } else {
-            $manifest = [];
-        }
-
-        if ($revision) {
-            $manifest[$this->filename] = $revision;
-        } else {
-            unset($manifest[$this->filename]);
-        }
-
-        $this->assetsDir->put(static::REV_MANIFEST, json_encode($manifest));
-    }
-
-    /**
      * @param SourceInterface[] $sources
      * @return string
      */
@@ -243,24 +182,17 @@ class RevisionCompiler implements CompilerInterface
         return hash('crc32b', serialize($cacheDifferentiator));
     }
 
-    /**
-     * @return mixed
-     */
-    protected function getCacheDifferentiator()
+    protected function getCacheDifferentiator(): ?array
     {
+        return null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function flush()
     {
-        if ($revision = $this->getRevision()) {
-            $file = $this->getFilenameForRevision($revision);
+        if ($this->versioner->getRevision($this->filename) !== null) {
+            $this->delete($this->filename);
 
-            $this->delete($file);
-
-            $this->putRevision(null);
+            $this->versioner->putRevision($this->filename, null);
         }
     }
 

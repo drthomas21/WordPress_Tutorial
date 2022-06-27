@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Post;
@@ -14,12 +12,13 @@ namespace Flarum\Post;
 use Flarum\Database\AbstractModel;
 use Flarum\Database\ScopeVisibilityTrait;
 use Flarum\Discussion\Discussion;
-use Flarum\Event\GetModelIsPrivate;
 use Flarum\Foundation\EventGeneratorTrait;
 use Flarum\Notification\Notification;
 use Flarum\Post\Event\Deleted;
 use Flarum\User\User;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 
 /**
  * @property int $id
@@ -92,19 +91,26 @@ class Post extends AbstractModel
         // When a post is created, set its type according to the value of the
         // subclass. Also give it an auto-incrementing number within the
         // discussion.
-        static::creating(function (Post $post) {
+        static::creating(function (self $post) {
             $post->type = $post::$type;
-            $post->number = ++$post->discussion->post_number_index;
+
+            /** @var ConnectionInterface $db */
+            $db = static::getConnectionResolver();
+            $post->number = new Expression('('.
+                $db->table('posts', 'pn')
+                    ->whereRaw($db->getTablePrefix().'pn.discussion_id = '.intval($post->discussion_id))
+                    // IFNULL only works on MySQL/MariaDB
+                    ->selectRaw('IFNULL(MAX('.$db->getTablePrefix().'pn.number), 0) + 1')
+                    ->toSql()
+            .')');
+        });
+
+        static::created(function (self $post) {
+            $post->refresh();
             $post->discussion->save();
         });
 
-        static::saving(function (Post $post) {
-            $event = new GetModelIsPrivate($post);
-
-            $post->is_private = static::$dispatcher->until($event) === true;
-        });
-
-        static::deleted(function (Post $post) {
+        static::deleted(function (self $post) {
             $post->raise(new Deleted($post));
 
             Notification::whereSubject($post)->delete();
@@ -219,8 +225,10 @@ class Post extends AbstractModel
      * @param string $type The post type.
      * @param string $model The class name of the model for that type.
      * @return void
+     *
+     * @internal
      */
-    public static function setModel($type, $model)
+    public static function setModel(string $type, string $model)
     {
         static::$models[$type] = $model;
     }

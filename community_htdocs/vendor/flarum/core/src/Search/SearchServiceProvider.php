@@ -3,75 +3,84 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Search;
 
-use Flarum\Event\ConfigureDiscussionGambits;
-use Flarum\Event\ConfigureUserGambits;
+use Flarum\Discussion\Query as DiscussionQuery;
+use Flarum\Discussion\Search\DiscussionSearcher;
+use Flarum\Discussion\Search\Gambit\FulltextGambit as DiscussionFulltextGambit;
 use Flarum\Foundation\AbstractServiceProvider;
+use Flarum\Foundation\ContainerUtil;
+use Flarum\User\Query as UserQuery;
+use Flarum\User\Search\Gambit\FulltextGambit as UserFulltextGambit;
+use Flarum\User\Search\UserSearcher;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Support\Arr;
 
 class SearchServiceProvider extends AbstractServiceProvider
 {
     /**
-     * Register the service provider.
-     *
-     * @return void
+     * @inheritDoc
      */
     public function register()
     {
-        $this->app->bind(
-            'Flarum\Discussion\Search\Fulltext\DriverInterface',
-            'Flarum\Discussion\Search\Fulltext\MySqlFulltextDriver'
-        );
+        $this->container->singleton('flarum.simple_search.fulltext_gambits', function () {
+            return [
+                DiscussionSearcher::class => DiscussionFulltextGambit::class,
+                UserSearcher::class => UserFulltextGambit::class
+            ];
+        });
 
-        $this->registerDiscussionGambits();
+        $this->container->singleton('flarum.simple_search.gambits', function () {
+            return [
+                DiscussionSearcher::class => [
+                    DiscussionQuery\AuthorFilterGambit::class,
+                    DiscussionQuery\CreatedFilterGambit::class,
+                    DiscussionQuery\HiddenFilterGambit::class,
+                    DiscussionQuery\UnreadFilterGambit::class,
+                ],
+                UserSearcher::class => [
+                    UserQuery\EmailFilterGambit::class,
+                    UserQuery\GroupFilterGambit::class,
+                ]
+            ];
+        });
 
-        $this->registerUserGambits();
+        $this->container->singleton('flarum.simple_search.search_mutators', function () {
+            return [];
+        });
     }
 
-    public function registerUserGambits()
+    public function boot(Container $container)
     {
-        $this->app->when('Flarum\User\Search\UserSearcher')
-            ->needs('Flarum\Search\GambitManager')
-            ->give(function (Container $app) {
-                $gambits = new GambitManager($app);
+        $fullTextGambits = $container->make('flarum.simple_search.fulltext_gambits');
 
-                $gambits->setFulltextGambit('Flarum\User\Search\Gambit\FulltextGambit');
-                $gambits->add('Flarum\User\Search\Gambit\EmailGambit');
-                $gambits->add('Flarum\User\Search\Gambit\GroupGambit');
+        foreach ($fullTextGambits as $searcher => $fullTextGambitClass) {
+            $container
+                ->when($searcher)
+                ->needs(GambitManager::class)
+                ->give(function () use ($container, $searcher, $fullTextGambitClass) {
+                    $gambitManager = new GambitManager($container->make($fullTextGambitClass));
+                    foreach (Arr::get($container->make('flarum.simple_search.gambits'), $searcher, []) as $gambit) {
+                        $gambitManager->add($container->make($gambit));
+                    }
 
-                $app->make('events')->fire(
-                    new ConfigureUserGambits($gambits)
-                );
+                    return $gambitManager;
+                });
 
-                return $gambits;
-            });
-    }
+            $container
+                ->when($searcher)
+                ->needs('$searchMutators')
+                ->give(function () use ($container, $searcher) {
+                    $searchMutators = Arr::get($container->make('flarum.simple_search.search_mutators'), $searcher, []);
 
-    public function registerDiscussionGambits()
-    {
-        $this->app->when('Flarum\Discussion\Search\DiscussionSearcher')
-            ->needs('Flarum\Search\GambitManager')
-            ->give(function (Container $app) {
-                $gambits = new GambitManager($app);
-
-                $gambits->setFulltextGambit('Flarum\Discussion\Search\Gambit\FulltextGambit');
-                $gambits->add('Flarum\Discussion\Search\Gambit\AuthorGambit');
-                $gambits->add('Flarum\Discussion\Search\Gambit\CreatedGambit');
-                $gambits->add('Flarum\Discussion\Search\Gambit\HiddenGambit');
-                $gambits->add('Flarum\Discussion\Search\Gambit\UnreadGambit');
-
-                $app->make('events')->fire(
-                    new ConfigureDiscussionGambits($gambits)
-                );
-
-                return $gambits;
-            });
+                    return array_map(function ($mutator) {
+                        return ContainerUtil::wrapCallback($mutator, $this->container);
+                    }, $searchMutators);
+                });
+        }
     }
 }

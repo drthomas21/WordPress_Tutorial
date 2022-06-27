@@ -3,17 +3,16 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Api\Controller;
 
 use Flarum\Api\Controller\AbstractListController;
+use Flarum\Http\RequestUtil;
 use Flarum\Tags\Api\Serializer\TagSerializer;
-use Flarum\Tags\Tag;
+use Flarum\Tags\TagRepository;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -28,25 +27,24 @@ class ListTagsController extends AbstractListController
      * {@inheritdoc}
      */
     public $include = [
-        'parent',
+        'parent'
     ];
 
     /**
      * {@inheritdoc}
      */
     public $optionalInclude = [
+        'children',
         'lastPostedDiscussion',
+        'state'
     ];
 
     /**
-     * @var \Flarum\Tags\Tag
+     * @var TagRepository
      */
     protected $tags;
 
-    /**
-     * @param \Flarum\Tags\Tag $tags
-     */
-    public function __construct(Tag $tags)
+    public function __construct(TagRepository $tags)
     {
         $this->tags = $tags;
     }
@@ -56,11 +54,17 @@ class ListTagsController extends AbstractListController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $actor = $request->getAttribute('actor');
+        $actor = RequestUtil::getActor($request);
         $include = $this->extractInclude($request);
 
-        $tags = $this->tags->whereVisibleTo($actor)->withStateFor($actor)->get();
+        if (in_array('lastPostedDiscussion', $include)) {
+            $include = array_merge($include, ['lastPostedDiscussion.tags', 'lastPostedDiscussion.state']);
+        }
 
-        return $tags->load($include);
+        return $this->tags
+            ->with($include, $actor)
+            ->whereVisibleTo($actor)
+            ->withStateFor($actor)
+            ->get();
     }
 }

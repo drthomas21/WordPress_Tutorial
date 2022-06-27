@@ -3,15 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Install\Prerequisite;
 
-class PhpVersion extends AbstractPrerequisite
+use Illuminate\Support\Collection;
+
+class PhpVersion implements PrerequisiteInterface
 {
     protected $minVersion;
 
@@ -20,13 +20,17 @@ class PhpVersion extends AbstractPrerequisite
         $this->minVersion = $minVersion;
     }
 
-    public function check()
+    public function problems(): Collection
     {
+        $collection = new Collection;
+
         if (version_compare(PHP_VERSION, $this->minVersion, '<')) {
-            $this->errors[] = [
+            $collection->push([
                 'message' => "PHP $this->minVersion is required.",
-                'detail' => 'You are running version '.PHP_VERSION.'. Talk to your hosting provider about upgrading to the latest PHP version.',
-            ];
+                'detail' => 'You are running version '.PHP_VERSION.'. You might want to talk to your system administrator about upgrading to the latest PHP version.',
+            ]);
         }
+
+        return $collection;
     }
 }

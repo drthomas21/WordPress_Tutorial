@@ -3,33 +3,31 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Formatter;
 
-use Flarum\Formatter\Event\Configuring;
-use Flarum\Formatter\Event\Parsing;
-use Flarum\Formatter\Event\Rendering;
 use Illuminate\Contracts\Cache\Repository;
-use Illuminate\Contracts\Events\Dispatcher;
+use Psr\Http\Message\ServerRequestInterface;
 use s9e\TextFormatter\Configurator;
 use s9e\TextFormatter\Unparser;
 
 class Formatter
 {
+    protected $configurationCallbacks = [];
+
+    protected $parsingCallbacks = [];
+
+    protected $unparsingCallbacks = [];
+
+    protected $renderingCallbacks = [];
+
     /**
      * @var Repository
      */
     protected $cache;
-
-    /**
-     * @var Dispatcher
-     */
-    protected $events;
 
     /**
      * @var string
@@ -38,14 +36,44 @@ class Formatter
 
     /**
      * @param Repository $cache
-     * @param Dispatcher $events
      * @param string $cacheDir
      */
-    public function __construct(Repository $cache, Dispatcher $events, $cacheDir)
+    public function __construct(Repository $cache, $cacheDir)
     {
         $this->cache = $cache;
-        $this->events = $events;
         $this->cacheDir = $cacheDir;
+    }
+
+    /**
+     * @internal
+     */
+    public function addConfigurationCallback($callback)
+    {
+        $this->configurationCallbacks[] = $callback;
+    }
+
+    /**
+     * @internal
+     */
+    public function addParsingCallback($callback)
+    {
+        $this->parsingCallbacks[] = $callback;
+    }
+
+    /**
+     * @internal
+     */
+    public function addUnparsingCallback($callback)
+    {
+        $this->unparsingCallbacks[] = $callback;
+    }
+
+    /**
+     * @internal
+     */
+    public function addRenderingCallback($callback)
+    {
+        $this->renderingCallbacks[] = $callback;
     }
 
     /**
@@ -59,7 +87,9 @@ class Formatter
     {
         $parser = $this->getParser($context);
 
-        $this->events->dispatch(new Parsing($parser, $context, $text));
+        foreach ($this->parsingCallbacks as $callback) {
+            $text = $callback($parser, $context, $text);
+        }
 
         return $parser->parse($text);
     }
@@ -69,13 +99,16 @@ class Formatter
      *
      * @param string $xml
      * @param mixed $context
+     * @param ServerRequestInterface|null $request
      * @return string
      */
-    public function render($xml, $context = null)
+    public function render($xml, $context = null, ServerRequestInterface $request = null)
     {
         $renderer = $this->getRenderer();
 
-        $this->events->dispatch(new Rendering($renderer, $context, $xml));
+        foreach ($this->renderingCallbacks as $callback) {
+            $xml = $callback($renderer, $context, $xml, $request);
+        }
 
         return $renderer->render($xml);
     }
@@ -84,10 +117,15 @@ class Formatter
      * Unparse XML.
      *
      * @param string $xml
+     * @param mixed $context
      * @return string
      */
-    public function unparse($xml)
+    public function unparse($xml, $context = null)
     {
+        foreach ($this->unparsingCallbacks as $callback) {
+            $xml = $callback($context, $xml);
+        }
+
         return Unparser::unparse($xml);
     }
 
@@ -122,7 +160,9 @@ class Formatter
         $configurator->Autolink;
         $configurator->tags->onDuplicate('replace');
 
-        $this->events->dispatch(new Configuring($configurator));
+        foreach ($this->configurationCallbacks as $callback) {
+            $callback($configurator);
+        }
 
         $this->configureExternalLinks($configurator);
 
@@ -137,8 +177,8 @@ class Formatter
         $dom = $configurator->tags['URL']->template->asDOM();
 
         foreach ($dom->getElementsByTagName('a') as $a) {
-            $a->setAttribute('target', '_blank');
-            $a->setAttribute('rel', 'nofollow');
+            $rel = $a->getAttribute('rel');
+            $a->setAttribute('rel', "$rel nofollow ugc");
         }
 
         $dom->saveChanges();

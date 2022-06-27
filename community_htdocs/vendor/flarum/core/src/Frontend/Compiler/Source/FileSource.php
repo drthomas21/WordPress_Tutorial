@@ -3,16 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend\Compiler\Source;
 
 use InvalidArgumentException;
 
+/**
+ * @internal
+ */
 class FileSource implements SourceInterface
 {
     /**
@@ -21,15 +22,21 @@ class FileSource implements SourceInterface
     protected $path;
 
     /**
+     * @var string
+     */
+    protected $extensionId;
+
+    /**
      * @param string $path
      */
-    public function __construct(string $path)
+    public function __construct(string $path, ?string $extensionId = null)
     {
         if (! file_exists($path)) {
             throw new InvalidArgumentException("File not found at path: $path");
         }
 
         $this->path = $path;
+        $this->extensionId = $extensionId;
     }
 
     /**
@@ -54,5 +61,15 @@ class FileSource implements SourceInterface
     public function getPath(): string
     {
         return $this->path;
+    }
+
+    public function setPath(string $path): void
+    {
+        $this->path = $path;
+    }
+
+    public function getExtensionId(): ?string
+    {
+        return $this->extensionId;
     }
 }

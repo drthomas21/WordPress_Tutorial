@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Http;
@@ -17,12 +15,12 @@ class SessionAuthenticator
 {
     /**
      * @param Session $session
-     * @param int $userId
+     * @param AccessToken $token
      */
-    public function logIn(Session $session, $userId)
+    public function logIn(Session $session, AccessToken $token)
     {
         $session->regenerate(true);
-        $session->put('user_id', $userId);
+        $session->put('access_token', $token->token);
     }
 
     /**
@@ -30,6 +28,12 @@ class SessionAuthenticator
      */
     public function logOut(Session $session)
     {
+        $token = AccessToken::findValid($session->get('access_token'));
+
+        if ($token) {
+            $token->delete();
+        }
+
         $session->invalidate();
         $session->regenerateToken();
     }

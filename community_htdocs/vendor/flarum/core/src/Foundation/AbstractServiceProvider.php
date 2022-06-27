@@ -3,29 +3,35 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
 
 abstract class AbstractServiceProvider extends ServiceProvider
 {
     /**
-     * @var Application
+     * @deprecated perpetually, not removed because Laravel needs it.
+     * @var Container
      */
     protected $app;
 
     /**
-     * @param Application $app
+     * @var Container
      */
-    public function __construct(Application $app)
+    protected $container;
+
+    /**
+     * @param Container $container
+     */
+    public function __construct(Container $container)
     {
-        parent::__construct($app);
+        $this->app = $container;
+        $this->container = $container;
     }
 
     /**

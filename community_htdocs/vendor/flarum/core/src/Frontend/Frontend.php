@@ -3,16 +3,13 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Frontend;
 
 use Flarum\Api\Client;
-use Flarum\Api\Controller\ShowForumController;
 use Illuminate\Contracts\View\Factory;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -52,7 +49,7 @@ class Frontend
     {
         $forumDocument = $this->getForumDocument($request);
 
-        $document = new Document($this->view, $forumDocument);
+        $document = new Document($this->view, $forumDocument, $request);
 
         $this->populate($document, $request);
 
@@ -68,12 +65,8 @@ class Frontend
 
     private function getForumDocument(Request $request): array
     {
-        $actor = $request->getAttribute('actor');
-
-        $this->api->setErrorHandler(null);
-
         return $this->getResponseBody(
-            $this->api->send(ShowForumController::class, $actor)
+            $this->api->withParentRequest($request)->get('/')
         );
     }
 

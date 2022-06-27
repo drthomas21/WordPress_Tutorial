@@ -3,23 +3,19 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Command;
 
-use Flarum\Tags\Event\TagWillBeSaved;
+use Flarum\Tags\Event\Saving;
 use Flarum\Tags\TagRepository;
 use Flarum\Tags\TagValidator;
-use Flarum\User\AssertPermissionTrait;
+use Illuminate\Support\Arr;
 
 class EditTagHandler
 {
-    use AssertPermissionTrait;
-
     /**
      * @var TagRepository
      */
@@ -52,9 +48,9 @@ class EditTagHandler
 
         $tag = $this->tags->findOrFail($command->tagId, $actor);
 
-        $this->assertCan($actor, 'edit', $tag);
+        $actor->assertCan('edit', $tag);
 
-        $attributes = array_get($data, 'attributes', []);
+        $attributes = Arr::get($data, 'attributes', []);
 
         if (isset($attributes['name'])) {
             $tag->name = $attributes['name'];
@@ -72,6 +68,10 @@ class EditTagHandler
             $tag->color = $attributes['color'];
         }
 
+        if (isset($attributes['icon'])) {
+            $tag->icon = $attributes['icon'];
+        }
+
         if (isset($attributes['isHidden'])) {
             $tag->is_hidden = (bool) $attributes['isHidden'];
         }
@@ -80,7 +80,7 @@ class EditTagHandler
             $tag->is_restricted = (bool) $attributes['isRestricted'];
         }
 
-        event(new TagWillBeSaved($tag, $actor, $data));
+        event(new Saving($tag, $actor, $data));
 
         $this->validator->assertValid($tag->getDirty());
 

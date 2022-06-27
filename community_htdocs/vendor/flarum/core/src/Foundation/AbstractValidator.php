@@ -3,22 +3,29 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Foundation;
 
-use Flarum\Foundation\Event\Validating;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Factory;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 abstract class AbstractValidator
 {
+    /**
+     * @var array
+     */
+    protected $configuration = [];
+
+    public function addConfiguration($callable)
+    {
+        $this->configuration[] = $callable;
+    }
+
     /**
      * @var array
      */
@@ -30,24 +37,17 @@ abstract class AbstractValidator
     protected $validator;
 
     /**
-     * @var Dispatcher
-     */
-    protected $events;
-
-    /**
      * @var TranslatorInterface
      */
     protected $translator;
 
     /**
      * @param Factory $validator
-     * @param Dispatcher $events
      * @param TranslatorInterface $translator
      */
-    public function __construct(Factory $validator, Dispatcher $events, TranslatorInterface $translator)
+    public function __construct(Factory $validator, TranslatorInterface $translator)
     {
         $this->validator = $validator;
-        $this->events = $events;
         $this->translator = $translator;
     }
 
@@ -89,13 +89,13 @@ abstract class AbstractValidator
      */
     protected function makeValidator(array $attributes)
     {
-        $rules = array_only($this->getRules(), array_keys($attributes));
+        $rules = Arr::only($this->getRules(), array_keys($attributes));
 
         $validator = $this->validator->make($attributes, $rules, $this->getMessages());
 
-        $this->events->dispatch(
-            new Validating($this, $validator)
-        );
+        foreach ($this->configuration as $callable) {
+            $callable($this, $validator);
+        }
 
         return $validator;
     }

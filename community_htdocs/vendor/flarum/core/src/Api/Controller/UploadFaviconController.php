@@ -3,89 +3,72 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Foundation\Application;
+use Flarum\Foundation\ValidationException;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Flarum\User\AssertPermissionTrait;
-use Illuminate\Support\Str;
+use Illuminate\Contracts\Filesystem\Factory;
+use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\Filesystem;
-use League\Flysystem\MountManager;
-use Psr\Http\Message\ServerRequestInterface;
-use Tobscure\JsonApi\Document;
+use Psr\Http\Message\UploadedFileInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-class UploadFaviconController extends ShowForumController
+class UploadFaviconController extends UploadImageController
 {
-    use AssertPermissionTrait;
+    protected $filePathSettingKey = 'favicon_path';
+
+    protected $filenamePrefix = 'favicon';
 
     /**
-     * @var SettingsRepositoryInterface
+     * @var TranslatorInterface
      */
-    protected $settings;
+    protected $translator;
 
     /**
-     * @var Application
+     * @var ImageManager
      */
-    protected $app;
+    protected $imageManager;
 
     /**
      * @param SettingsRepositoryInterface $settings
+     * @param Factory $filesystemFactory
      */
-    public function __construct(SettingsRepositoryInterface $settings, Application $app)
+    public function __construct(SettingsRepositoryInterface $settings, Factory $filesystemFactory, TranslatorInterface $translator, ImageManager $imageManager)
     {
-        $this->settings = $settings;
-        $this->app = $app;
+        parent::__construct($settings, $filesystemFactory);
+
+        $this->translator = $translator;
+        $this->imageManager = $imageManager;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function data(ServerRequestInterface $request, Document $document)
+    protected function makeImage(UploadedFileInterface $file): Image
     {
-        $this->assertAdmin($request->getAttribute('actor'));
+        $this->fileExtension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
 
-        $file = array_get($request->getUploadedFiles(), 'favicon');
-
-        $tmpFile = tempnam($this->app->storagePath().'/tmp', 'favicon');
-        $file->moveTo($tmpFile);
-
-        $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-
-        if ($extension !== 'ico') {
-            $manager = new ImageManager;
-
-            $encodedImage = $manager->make($tmpFile)->resize(64, 64, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            })->encode('png');
-            file_put_contents($tmpFile, $encodedImage);
-
-            $extension = 'png';
+        if ($this->fileExtension === 'ico') {
+            // @todo remove in 2.0
+            throw new ValidationException([
+                'message' => strtr($this->translator->trans('validation.mimes'), [
+                    ':attribute' => 'favicon',
+                    ':values' => 'jpeg,png,gif,webp',
+                ])
+            ]);
         }
 
-        $mount = new MountManager([
-            'source' => new Filesystem(new Local(pathinfo($tmpFile, PATHINFO_DIRNAME))),
-            'target' => new Filesystem(new Local($this->app->publicPath().'/assets')),
-        ]);
+        $encodedImage = $this->imageManager->make($file->getStream())->resize(64, 64, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        })->encode('png');
 
-        if (($path = $this->settings->get('favicon_path')) && $mount->has($file = "target://$path")) {
-            $mount->delete($file);
-        }
+        $this->fileExtension = 'png';
 
-        $uploadName = 'favicon-'.Str::lower(Str::random(8)).'.'.$extension;
-
-        $mount->move('source://'.pathinfo($tmpFile, PATHINFO_BASENAME), "target://$uploadName");
-
-        $this->settings->set('favicon_path', $uploadName);
-
-        return parent::data($request, $document);
+        return $encodedImage;
     }
 }

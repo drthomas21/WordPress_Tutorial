@@ -1,13 +1,12 @@
-import { extend } from 'flarum/extend';
-import app from 'flarum/app';
-import PermissionGrid from 'flarum/components/PermissionGrid';
+import app from 'flarum/admin/app';
 
 app.initializers.add('flarum-likes', () => {
-  extend(PermissionGrid.prototype, 'replyItems', items => {
-    items.add('likePosts', {
+  app.extensionData.for('flarum-likes').registerPermission(
+    {
       icon: 'far fa-thumbs-up',
       label: app.translator.trans('flarum-likes.admin.permissions.like_posts_label'),
-      permission: 'discussion.likePosts'
-    });
-  });
+      permission: 'discussion.likePosts',
+    },
+    'reply'
+  );
 });

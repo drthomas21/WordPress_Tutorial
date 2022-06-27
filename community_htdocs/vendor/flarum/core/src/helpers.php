@@ -3,21 +3,40 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
+use Flarum\Foundation\Paths;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Config\Repository;
+
+if (! function_exists('resolve')) {
+    /**
+     * Resolve a service from the container.
+     *
+     * @template T
+     * @param  class-string<T>|string  $name
+     * @param  array  $parameters
+     * @return T|mixed
+     */
+    function resolve($name, $parameters = [])
+    {
+        return Container::getInstance()->make($name, $parameters);
+    }
+}
+
+// The following are all deprecated perpetually.
+// They are needed by some laravel components we use (e.g. task scheduling)
+// They should NOT be used in extension code.
 
 if (! function_exists('app')) {
     /**
-     * Get the available container instance.
+     * @deprecated perpetually.
      *
      * @param  string  $make
      * @param  array   $parameters
-     * @return mixed|\Illuminate\Foundation\Application
+     * @return mixed|\Illuminate\Container\Container
      */
     function app($make = null, $parameters = [])
     {
@@ -25,25 +44,14 @@ if (! function_exists('app')) {
             return Container::getInstance();
         }
 
-        return Container::getInstance()->make($make, $parameters);
-    }
-}
-
-if (! function_exists('app_path')) {
-    /**
-     * Get the path to the application folder.
-     *
-     * @param  string  $path
-     * @return string
-     */
-    function app_path($path = '')
-    {
-        return app('path').($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return resolve($make, $parameters);
     }
 }
 
 if (! function_exists('base_path')) {
     /**
+     * @deprecated perpetually.
+     *
      * Get the path to the base of the install.
      *
      * @param  string  $path
@@ -51,12 +59,14 @@ if (! function_exists('base_path')) {
      */
     function base_path($path = '')
     {
-        return app()->basePath().($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return resolve(Paths::class)->base.($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
 }
 
 if (! function_exists('public_path')) {
     /**
+     * @deprecated perpetually.
+     *
      * Get the path to the public folder.
      *
      * @param  string  $path
@@ -64,12 +74,14 @@ if (! function_exists('public_path')) {
      */
     function public_path($path = '')
     {
-        return app()->publicPath().($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return resolve(Paths::class)->public.($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
 }
 
 if (! function_exists('storage_path')) {
     /**
+     * @deprecated perpetually.
+     *
      * Get the path to the storage folder.
      *
      * @param  string  $path
@@ -77,12 +89,14 @@ if (! function_exists('storage_path')) {
      */
     function storage_path($path = '')
     {
-        return app('path.storage').($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return resolve(Paths::class)->storage.($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
 }
 
 if (! function_exists('event')) {
     /**
+     * @deprecated perpetually.
+     *
      * Fire an event and call the listeners.
      *
      * @param  string|object  $event
@@ -92,6 +106,16 @@ if (! function_exists('event')) {
      */
     function event($event, $payload = [], $halt = false)
     {
-        return app('events')->fire($event, $payload, $halt);
+        return resolve('events')->dispatch($event, $payload, $halt);
+    }
+}
+
+if (! function_exists('config')) {
+    /**
+     * @deprecated do not use, will be transferred to flarum/laravel-helpers.
+     */
+    function config(string $key, $default = null)
+    {
+        return resolve(Repository::class)->get($key, $default);
     }
 }

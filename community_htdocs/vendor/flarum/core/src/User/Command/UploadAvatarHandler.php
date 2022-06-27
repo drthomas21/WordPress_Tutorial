@@ -3,39 +3,28 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\User\Command;
 
-use Flarum\Foundation\Application;
 use Flarum\Foundation\DispatchEventsTrait;
-use Flarum\User\AssertPermissionTrait;
 use Flarum\User\AvatarUploader;
 use Flarum\User\AvatarValidator;
 use Flarum\User\Event\AvatarSaving;
 use Flarum\User\UserRepository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Intervention\Image\ImageManager;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class UploadAvatarHandler
 {
     use DispatchEventsTrait;
-    use AssertPermissionTrait;
 
     /**
      * @var \Flarum\User\UserRepository
      */
     protected $users;
-
-    /**
-     * @var Application
-     */
-    protected $app;
 
     /**
      * @var AvatarUploader
@@ -48,25 +37,30 @@ class UploadAvatarHandler
     protected $validator;
 
     /**
+     * @var ImageManager
+     */
+    protected $imageManager;
+
+    /**
      * @param Dispatcher $events
      * @param UserRepository $users
-     * @param Application $app
      * @param AvatarUploader $uploader
      * @param AvatarValidator $validator
      */
-    public function __construct(Dispatcher $events, UserRepository $users, Application $app, AvatarUploader $uploader, AvatarValidator $validator)
+    public function __construct(Dispatcher $events, UserRepository $users, AvatarUploader $uploader, AvatarValidator $validator, ImageManager $imageManager)
     {
         $this->events = $events;
         $this->users = $users;
-        $this->app = $app;
         $this->uploader = $uploader;
         $this->validator = $validator;
+        $this->imageManager = $imageManager;
     }
 
     /**
      * @param UploadAvatar $command
      * @return \Flarum\User\User
      * @throws \Flarum\User\Exception\PermissionDeniedException
+     * @throws \Flarum\Foundation\ValidationException
      */
     public function handle(UploadAvatar $command)
     {
@@ -75,38 +69,22 @@ class UploadAvatarHandler
         $user = $this->users->findOrFail($command->userId);
 
         if ($actor->id !== $user->id) {
-            $this->assertCan($actor, 'edit', $user);
+            $actor->assertCan('edit', $user);
         }
 
-        $file = $command->file;
+        $this->validator->assertValid(['avatar' => $command->file]);
 
-        $tmpFile = tempnam($this->app->storagePath().'/tmp', 'avatar');
-        $file->moveTo($tmpFile);
+        $image = $this->imageManager->make($command->file->getStream());
 
-        try {
-            $file = new UploadedFile(
-                $tmpFile,
-                $file->getClientFilename(),
-                $file->getClientMediaType(),
-                $file->getSize(),
-                $file->getError(),
-                true
-            );
+        $this->events->dispatch(
+            new AvatarSaving($user, $actor, $image)
+        );
 
-            $this->validator->assertValid(['avatar' => $file]);
+        $this->uploader->upload($user, $image);
 
-            $image = (new ImageManager)->make($tmpFile);
+        $user->save();
 
-            $this->events->dispatch(
-                new AvatarSaving($user, $actor, $image)
-            );
-
-            $this->uploader->upload($user, $image);
-
-            $user->save();
-        } finally {
-            @unlink($tmpFile);
-        }
+        $this->dispatchEventsFor($user, $actor);
 
         return $user;
     }

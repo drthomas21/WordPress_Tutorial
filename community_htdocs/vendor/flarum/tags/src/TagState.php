@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags;
@@ -19,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * @property int $user_id
  * @property int $tag_id
- * @property \Carbon\Carbon|null $read_time
+ * @property \Carbon\Carbon|null $marked_as_read_at
  * @property bool $is_hidden
  * @property Tag $tag
  * @property User $user
@@ -64,7 +62,7 @@ class TagState extends AbstractModel
      * @param Builder $query
      * @return Builder
      */
-    protected function setKeysForSaveQuery(Builder $query)
+    protected function setKeysForSaveQuery($query)
     {
         $query->where('tag_id', $this->tag_id)
               ->where('user_id', $this->user_id);

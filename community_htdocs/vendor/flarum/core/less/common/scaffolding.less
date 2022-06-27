@@ -2,13 +2,13 @@
   &,
   &:before,
   &:after {
-    .box-sizing(border-box);
+    box-sizing: border-box;
   }
 }
 
 body {
-  background: @body-bg;
-  color: @text-color;
+  background: var(--body-bg);
+  color: var(--text-color);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, Cantarell, Oxygen, Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.5;
@@ -30,7 +30,7 @@ textarea {
 
 a {
   cursor: pointer;
-  color: @link-color;
+  color: var(--link-color);
   text-decoration: none;
 
   &:hover {
@@ -42,7 +42,7 @@ hr {
   margin-top: 15px;
   margin-bottom: 15px;
   border: 0;
-  border-top: 2px solid @control-bg;
+  border-top: 2px solid var(--control-bg);
 }
 
 p {
@@ -75,7 +75,7 @@ p {
 mark {
   background: #FFE300;
   padding: 1px;
-  border-radius: @border-radius;
+  border-radius: var(--border-radius);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
 }
 
@@ -92,7 +92,7 @@ legend {
   font-size: 14px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: @text-color;
+  color: var(--text-color);
 }
 input[type="search"] {
   -webkit-appearance: none;
@@ -114,13 +114,13 @@ input[type="search"] {
 
 .fade {
   opacity: 0;
-  .transition(opacity .15s linear);
+  transition: opacity .15s linear;
   &.in {
     opacity: 1;
   }
 }
 .darkenBackground {
-  background: @shadow-color;
+  background: var(--shadow-color);
 }
 
 blockquote p:last-child,
@@ -146,5 +146,15 @@ blockquote ol:last-child {
   text-align: center;
   padding: 50px 0;
   font-size: 18px;
-  color: @muted-more-color;
+  color: var(--muted-more-color);
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }

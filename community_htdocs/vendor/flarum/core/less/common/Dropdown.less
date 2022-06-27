@@ -5,17 +5,17 @@
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: @zindex-dropdown;
+  z-index: var(--zindex-dropdown);
   display: none;
   min-width: 160px;
   padding: 8px 0;
   margin: 7px 0;
-  background: @body-bg;
-  border-radius: @border-radius;
-  .box-shadow(0 2px 6px @shadow-color);
+  background: var(--body-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 6px var(--shadow-color);
   list-style: none;
   text-align: left;
-  color: @text-color;
+  color: var(--text-color);
   font-size: 13px;
   line-height: 1.5;
 
@@ -28,18 +28,19 @@
       padding: 8px 15px;
       display: block;
       width: 100%;
-      color: @text-color;
+      color: var(--text-color);
       border-radius: 0;
       border: 0;
       background: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      .box-shadow(none);
+      box-shadow: none;
       text-align: left;
       font-size: 13px;
       font-weight: normal;
       text-decoration: none;
+      cursor: pointer;
 
       &.hasIcon {
         padding-left: 40px;
@@ -60,15 +61,12 @@
     }
     > a, > button {
       &:hover {
-        background: @control-bg;
-      }
-      &:focus {
-        outline: none;
+        background: var(--control-bg);
       }
     }
     &.active {
       > a, > button {
-        background: @control-bg;
+        background: var(--control-bg);
       }
     }
   }
@@ -83,12 +81,12 @@
 }
 .Dropdown-header {
   padding: 10px 15px;
-  color: @heading-color;
+  color: var(--heading-color);
   text-transform: uppercase;
   font-size: 12px;
   font-weight: bold;
   margin-top: 8px;
-  border-top: 1px solid @control-bg;
+  border-top: 1px solid var(--control-bg);
   white-space: nowrap;
 
   &:first-child {
@@ -98,7 +96,7 @@
 }
 .Dropdown-separator {
   margin: 8px 0;
-  background-color: @control-bg;
+  background-color: var(--control-bg);
   height: 1px;
 }
 
@@ -109,7 +107,7 @@
   right: 0;
   bottom: 0;
   top: 0;
-  z-index: (@zindex-dropdown - 10);
+  z-index: calc(~"var(--zindex-dropdown) - 10");
 }
 
 
@@ -124,7 +122,7 @@
 
   &.itemCount1 {
     .Button {
-      border-radius: @border-radius !important;
+      border-radius: var(--border-radius) !important;
     }
     .Dropdown-toggle {
       display: none;
@@ -154,14 +152,14 @@
     float: none;
     position: static;
     background: none;
-    .box-shadow(none);
+    box-shadow: none;
   }
 }
 
 
 @media @phone {
   .Dropdown.open {
-    z-index: @zindex-modal;
+    z-index: var(--zindex-modal);
   }
   .Dropdown .Dropdown-menu {
     margin: 0;
@@ -176,16 +174,16 @@
     display: block;
     max-height: 70vh;
     border-radius: 0;
-    .box-shadow(0 2px 6px @shadow-color);
+    box-shadow: 0 2px 6px var(--shadow-color);
     visibility: hidden;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    .translate3d(0, 70vh, 0);
-    .transition-transform(~" 0.3s, visibility 0s 0.3s");
+    transform: translate(0, 70vh);
+    transition: transform 0.3s, visibility 0s 0.3s;
 
     > li {
       > a, > button {
-        background: @body-bg;
+        background: var(--body-bg);
         font-size: 16px;
         padding: 15px 20px;
 
@@ -197,14 +195,14 @@
           margin-left: -30px;
         }
         &:hover {
-          background: @control-bg;
+          background: var(--control-bg);
         }
       }
     }
     > .active {
       > a, > button {
         &, &:hover {
-          background: @primary-color !important;
+          background: var(--primary-color) !important;
           color: #fff !important;
         }
       }
@@ -220,10 +218,10 @@
     margin: 0;
   }
   .dropdown-backdrop {
-    background: fade(@secondary-color, 90%);
+    background: var(--overlay-bg);
     opacity: 0;
-    .transition(~"opacity 0.3s");
-    .translate3d(0, 0, 0);
+    transition: opacity 0.3s;
+    transform: translate(0, 0);
 
     .open & {
       opacity: 1;

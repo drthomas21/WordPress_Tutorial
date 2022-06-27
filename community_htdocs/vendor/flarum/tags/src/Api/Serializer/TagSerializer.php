@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Tags\Api\Serializer;
@@ -33,7 +31,7 @@ class TagSerializer extends AbstractSerializer
             'color'              => $tag->color,
             'backgroundUrl'      => $tag->background_path,
             'backgroundMode'     => $tag->background_mode,
-            'iconUrl'            => $tag->icon_path,
+            'icon'               => $tag->icon,
             'discussionCount'    => (int) $tag->discussion_count,
             'position'           => $tag->position === null ? null : (int) $tag->position,
             'defaultSort'        => $tag->default_sort,
@@ -57,6 +55,11 @@ class TagSerializer extends AbstractSerializer
     protected function parent($tag)
     {
         return $this->hasOne($tag, self::class);
+    }
+
+    protected function children($tag)
+    {
+        return $this->hasMany($tag, self::class);
     }
 
     /**

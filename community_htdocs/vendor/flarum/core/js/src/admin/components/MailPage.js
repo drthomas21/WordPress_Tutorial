@@ -1,124 +1,135 @@
-import Page from './Page';
+import app from '../../admin/app';
 import FieldSet from '../../common/components/FieldSet';
 import Button from '../../common/components/Button';
 import Alert from '../../common/components/Alert';
-import saveSettings from '../utils/saveSettings';
+import LoadingIndicator from '../../common/components/LoadingIndicator';
+import AdminPage from './AdminPage';
 
-export default class MailPage extends Page {
-  init() {
-    super.init();
+export default class MailPage extends AdminPage {
+  oninit(vnode) {
+    super.oninit(vnode);
 
-    this.loading = false;
-
-    this.fields = [
-      'mail_driver',
-      'mail_host',
-      'mail_from',
-      'mail_port',
-      'mail_username',
-      'mail_password',
-      'mail_encryption'
-    ];
-    this.values = {};
-
-    const settings = app.data.settings;
-    this.fields.forEach(key => this.values[key] = m.prop(settings[key]));
-
-    this.localeOptions = {};
-    const locales = app.locales;
-    for (const i in locales) {
-      this.localeOptions[i] = `${locales[i]} (${i})`;
-    }
+    this.sendingTest = false;
+    this.refresh();
   }
 
-  view() {
+  headerInfo() {
+    return {
+      className: 'MailPage',
+      icon: 'fas fa-envelope',
+      title: app.translator.trans('core.admin.email.title'),
+      description: app.translator.trans('core.admin.email.description'),
+    };
+  }
+
+  refresh() {
+    this.loading = true;
+
+    this.status = { sending: false, errors: {} };
+
+    app
+      .request({
+        method: 'GET',
+        url: app.forum.attribute('apiUrl') + '/mail/settings',
+      })
+      .then((response) => {
+        this.driverFields = response['data']['attributes']['fields'];
+        this.status.sending = response['data']['attributes']['sending'];
+        this.status.errors = response['data']['attributes']['errors'];
+
+        this.loading = false;
+        m.redraw();
+      });
+  }
+
+  content() {
+    if (this.loading) {
+      return <LoadingIndicator />;
+    }
+
+    const fields = this.driverFields[this.setting('mail_driver')()];
+    const fieldKeys = Object.keys(fields);
+
     return (
-      <div className="MailPage">
-        <div className="container">
-          <form onsubmit={this.onsubmit.bind(this)}>
-            <h2>{app.translator.trans('core.admin.email.heading')}</h2>
-            <div className="helpText">
-              {app.translator.trans('core.admin.email.text')}
+      <div className="Form">
+        {this.buildSettingComponent({
+          type: 'text',
+          setting: 'mail_from',
+          label: app.translator.trans('core.admin.email.addresses_heading'),
+        })}
+        {this.buildSettingComponent({
+          type: 'select',
+          setting: 'mail_driver',
+          options: Object.keys(this.driverFields).reduce((memo, val) => ({ ...memo, [val]: val }), {}),
+          label: app.translator.trans('core.admin.email.driver_heading'),
+        })}
+        {this.status.sending ||
+          Alert.component(
+            {
+              dismissible: false,
+            },
+            app.translator.trans('core.admin.email.not_sending_message')
+          )}
+
+        {fieldKeys.length > 0 && (
+          <FieldSet label={app.translator.trans(`core.admin.email.${this.setting('mail_driver')()}_heading`)} className="MailPage-MailSettings">
+            <div className="MailPage-MailSettings-input">
+              {fieldKeys.map((field) => {
+                const fieldInfo = fields[field];
+
+                return [
+                  this.buildSettingComponent({
+                    type: typeof fieldInfo === 'string' ? 'text' : 'select',
+                    label: app.translator.trans(`core.admin.email.${field}_label`),
+                    setting: field,
+                    options: fieldInfo,
+                  }),
+                  this.status.errors[field] && <p className="ValidationError">{this.status.errors[field]}</p>,
+                ];
+              })}
             </div>
+          </FieldSet>
+        )}
+        {this.submitButton()}
 
-            {FieldSet.component({
-              label: app.translator.trans('core.admin.email.server_heading'),
-              className: 'MailPage-MailSettings',
-              children: [
-                <div className="MailPage-MailSettings-input">
-                  <label>{app.translator.trans('core.admin.email.driver_label')}</label>
-                  <input className="FormControl" value={this.values.mail_driver() || ''} oninput={m.withAttr('value', this.values.mail_driver)} />
-                  <label>{app.translator.trans('core.admin.email.host_label')}</label>
-                  <input className="FormControl" value={this.values.mail_host() || ''} oninput={m.withAttr('value', this.values.mail_host)} />
-                  <label>{app.translator.trans('core.admin.email.port_label')}</label>
-                  <input className="FormControl" value={this.values.mail_port() || ''} oninput={m.withAttr('value', this.values.mail_port)} />
-                  <label>{app.translator.trans('core.admin.email.encryption_label')}</label>
-                  <input className="FormControl" value={this.values.mail_encryption() || ''} oninput={m.withAttr('value', this.values.mail_encryption)} />
-                </div>
-              ]
-            })}
-
-            {FieldSet.component({
-              label: app.translator.trans('core.admin.email.account_heading'),
-              className: 'MailPage-MailSettings',
-              children: [
-                <div className="MailPage-MailSettings-input">
-                  <label>{app.translator.trans('core.admin.email.username_label')}</label>
-                  <input className="FormControl" value={this.values.mail_username() || ''} oninput={m.withAttr('value', this.values.mail_username)} />
-                  <label>{app.translator.trans('core.admin.email.password_label')}</label>
-                  <input className="FormControl" value={this.values.mail_password() || ''} oninput={m.withAttr('value', this.values.mail_password)} />
-                </div>
-              ]
-            })}
-
-            {FieldSet.component({
-              label: app.translator.trans('core.admin.email.addresses_heading'),
-              className: 'MailPage-MailSettings',
-              children: [
-                <div className="MailPage-MailSettings-input">
-                  <label>{app.translator.trans('core.admin.email.from_label')}</label>
-                  <input className="FormControl" value={this.values.mail_from() || ''} oninput={m.withAttr('value', this.values.mail_from)} />
-                </div>
-              ]
-            })}
-
-            {Button.component({
-              type: 'submit',
+        <FieldSet label={app.translator.trans('core.admin.email.send_test_mail_heading')} className="MailPage-MailSettings">
+          <div className="helpText">{app.translator.trans('core.admin.email.send_test_mail_text', { email: app.session.user.email() })}</div>
+          {Button.component(
+            {
               className: 'Button Button--primary',
-              children: app.translator.trans('core.admin.email.submit_button'),
-              loading: this.loading,
-              disabled: !this.changed()
-            })}
-          </form>
-        </div>
+              disabled: this.sendingTest || this.isChanged(),
+              onclick: () => this.sendTestEmail(),
+            },
+            app.translator.trans('core.admin.email.send_test_mail_button')
+          )}
+        </FieldSet>
       </div>
     );
   }
 
-  changed() {
-    return this.fields.some(key => this.values[key]() !== app.data.settings[key]);
+  sendTestEmail() {
+    if (this.saving || this.sendingTest) return;
+
+    this.sendingTest = true;
+    app.alerts.dismiss(this.testEmailSuccessAlert);
+
+    app
+      .request({
+        method: 'POST',
+        url: app.forum.attribute('apiUrl') + '/mail/test',
+      })
+      .then((response) => {
+        this.sendingTest = false;
+        this.testEmailSuccessAlert = app.alerts.show({ type: 'success' }, app.translator.trans('core.admin.email.send_test_mail_success'));
+      })
+      .catch((error) => {
+        this.sendingTest = false;
+        m.redraw();
+        throw error;
+      });
   }
 
-  onsubmit(e) {
-    e.preventDefault();
-
-    if (this.loading) return;
-
-    this.loading = true;
-    app.alerts.dismiss(this.successAlert);
-
-    const settings = {};
-
-    this.fields.forEach(key => settings[key] = this.values[key]());
-
-    saveSettings(settings)
-      .then(() => {
-        app.alerts.show(this.successAlert = new Alert({type: 'success', children: app.translator.trans('core.admin.basics.saved_message')}));
-      })
-      .catch(() => {})
-      .then(() => {
-        this.loading = false;
-        m.redraw();
-      });
+  saveSettings(e) {
+    super.saveSettings(e).then(this.refresh());
   }
 }

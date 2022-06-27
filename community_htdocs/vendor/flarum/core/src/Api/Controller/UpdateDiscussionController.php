@@ -3,10 +3,8 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Api\Controller;
@@ -14,8 +12,10 @@ namespace Flarum\Api\Controller;
 use Flarum\Api\Serializer\DiscussionSerializer;
 use Flarum\Discussion\Command\EditDiscussion;
 use Flarum\Discussion\Command\ReadDiscussion;
+use Flarum\Http\RequestUtil;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
@@ -44,9 +44,9 @@ class UpdateDiscussionController extends AbstractShowController
      */
     protected function data(ServerRequestInterface $request, Document $document)
     {
-        $actor = $request->getAttribute('actor');
-        $discussionId = array_get($request->getQueryParams(), 'id');
-        $data = array_get($request->getParsedBody(), 'data', []);
+        $actor = RequestUtil::getActor($request);
+        $discussionId = Arr::get($request->getQueryParams(), 'id');
+        $data = Arr::get($request->getParsedBody(), 'data', []);
 
         $discussion = $this->bus->dispatch(
             new EditDiscussion($discussionId, $actor, $data)
@@ -54,7 +54,7 @@ class UpdateDiscussionController extends AbstractShowController
 
         // TODO: Refactor the ReadDiscussion (state) command into EditDiscussion?
         // That's what extensions will do anyway.
-        if ($readNumber = array_get($data, 'attributes.lastReadPostNumber')) {
+        if ($readNumber = Arr::get($data, 'attributes.lastReadPostNumber')) {
             $state = $this->bus->dispatch(
                 new ReadDiscussion($discussionId, $actor, $readNumber)
             );

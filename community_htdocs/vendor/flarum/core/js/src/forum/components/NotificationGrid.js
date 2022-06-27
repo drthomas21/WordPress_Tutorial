@@ -1,3 +1,4 @@
+import app from '../../forum/app';
 import Component from '../../common/Component';
 import Checkbox from '../../common/components/Checkbox';
 import icon from '../../common/helpers/icon';
@@ -7,57 +8,45 @@ import ItemList from '../../common/utils/ItemList';
  * The `NotificationGrid` component displays a table of notification types and
  * methods, allowing the user to toggle each combination.
  *
- * ### Props
+ * ### Attrs
  *
  * - `user`
  */
 export default class NotificationGrid extends Component {
-  init() {
+  oninit(vnode) {
+    super.oninit(vnode);
+
     /**
      * Information about the available notification methods.
      *
-     * @type {Array}
+     * @type {({ name: string, icon: string, label: import('mithril').Children })[]}
      */
     this.methods = this.notificationMethods().toArray();
 
     /**
-     * A map of notification type-method combinations to the checkbox instances
-     * that represent them.
+     * A map of which notification checkboxes are loading.
      *
-     * @type {Object}
+     * @type {Record<string, boolean>}
      */
-    this.inputs = {};
+    this.loading = {};
 
     /**
      * Information about the available notification types.
      *
-     * @type {Array}
+     * @type {({ name: string, icon: string, label: import('mithril').Children })[]}
      */
     this.types = this.notificationTypes().toArray();
-
-    // For each of the notification type-method combinations, create and store a
-    // new checkbox component instance, which we will render in the view.
-    this.types.forEach(type => {
-      this.methods.forEach(method => {
-        const key = this.preferenceKey(type.name, method.name);
-        const preference = this.props.user.preferences()[key];
-
-        this.inputs[key] = new Checkbox({
-          state: !!preference,
-          disabled: typeof preference === 'undefined',
-          onchange: () => this.toggle([key])
-        });
-      });
-    });
   }
 
   view() {
+    const preferences = this.attrs.user.preferences();
+
     return (
       <table className="NotificationGrid">
         <thead>
           <tr>
-            <td/>
-            {this.methods.map(method => (
+            <td />
+            {this.methods.map((method) => (
               <th className="NotificationGrid-groupToggle" onclick={this.toggleMethod.bind(this, method.name)}>
                 {icon(method.icon)} {method.label}
               </th>
@@ -66,16 +55,25 @@ export default class NotificationGrid extends Component {
         </thead>
 
         <tbody>
-          {this.types.map(type => (
+          {this.types.map((type) => (
             <tr>
               <td className="NotificationGrid-groupToggle" onclick={this.toggleType.bind(this, type.name)}>
                 {icon(type.icon)} {type.label}
               </td>
-              {this.methods.map(method => (
-                <td className="NotificationGrid-checkbox">
-                  {this.inputs[this.preferenceKey(type.name, method.name)].render()}
-                </td>
-              ))}
+              {this.methods.map((method) => {
+                const key = this.preferenceKey(type.name, method.name);
+
+                return (
+                  <td className="NotificationGrid-checkbox">
+                    <Checkbox
+                      state={!!preferences[key]}
+                      loading={this.loading[key]}
+                      disabled={!(key in preferences)}
+                      onchange={this.toggle.bind(this, [key])}
+                    />
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -83,16 +81,22 @@ export default class NotificationGrid extends Component {
     );
   }
 
-  config(isInitialized) {
-    if (isInitialized) return;
+  oncreate(vnode) {
+    super.oncreate(vnode);
 
-    this.$('thead .NotificationGrid-groupToggle').bind('mouseenter mouseleave', function(e) {
+    this.$('thead .NotificationGrid-groupToggle').bind('mouseenter mouseleave', function (e) {
       const i = parseInt($(this).index(), 10) + 1;
-      $(this).parents('table').find('td:nth-child(' + i + ')').toggleClass('highlighted', e.type === 'mouseenter');
+      $(this)
+        .parents('table')
+        .find('td:nth-child(' + i + ')')
+        .toggleClass('highlighted', e.type === 'mouseenter');
     });
 
-    this.$('tbody .NotificationGrid-groupToggle').bind('mouseenter mouseleave', function(e) {
-      $(this).parent().find('td').toggleClass('highlighted', e.type === 'mouseenter');
+    this.$('tbody .NotificationGrid-groupToggle').bind('mouseenter mouseleave', function (e) {
+      $(this)
+        .parent()
+        .find('td')
+        .toggleClass('highlighted', e.type === 'mouseenter');
     });
   }
 
@@ -100,24 +104,22 @@ export default class NotificationGrid extends Component {
    * Toggle the state of the given preferences, based on the value of the first
    * one.
    *
-   * @param {Array} keys
+   * @param {string[]} keys
    */
   toggle(keys) {
-    const user = this.props.user;
+    const user = this.attrs.user;
     const preferences = user.preferences();
     const enabled = !preferences[keys[0]];
 
-    keys.forEach(key => {
-      const control = this.inputs[key];
-
-      control.loading = true;
-      preferences[key] = control.props.state = enabled;
+    keys.forEach((key) => {
+      this.loading[key] = true;
+      preferences[key] = enabled;
     });
 
     m.redraw();
 
-    user.save({preferences}).then(() => {
-      keys.forEach(key => this.inputs[key].loading = false);
+    user.save({ preferences }).then(() => {
+      keys.forEach((key) => (this.loading[key] = false));
 
       m.redraw();
     });
@@ -126,12 +128,10 @@ export default class NotificationGrid extends Component {
   /**
    * Toggle all notification types for the given method.
    *
-   * @param {String} method
+   * @param {string} method
    */
   toggleMethod(method) {
-    const keys = this.types
-      .map(type => this.preferenceKey(type.name, method))
-      .filter(key => !this.inputs[key].props.disabled);
+    const keys = this.types.map((type) => this.preferenceKey(type.name, method)).filter((key) => key in this.attrs.user.preferences());
 
     this.toggle(keys);
   }
@@ -139,12 +139,10 @@ export default class NotificationGrid extends Component {
   /**
    * Toggle all notification methods for the given type.
    *
-   * @param {String} type
+   * @param {string} type
    */
   toggleType(type) {
-    const keys = this.methods
-      .map(method => this.preferenceKey(type, method.name))
-      .filter(key => !this.inputs[key].props.disabled);
+    const keys = this.methods.map((method) => this.preferenceKey(type, method.name)).filter((key) => key in this.attrs.user.preferences());
 
     this.toggle(keys);
   }
@@ -153,9 +151,9 @@ export default class NotificationGrid extends Component {
    * Get the name of the preference key for the given notification type-method
    * combination.
    *
-   * @param {String} type
-   * @param {String} method
-   * @return {String}
+   * @param {string} type
+   * @param {string} method
+   * @return {string}
    */
   preferenceKey(type, method) {
     return 'notify_' + type + '_' + method;
@@ -170,7 +168,7 @@ export default class NotificationGrid extends Component {
    * - `icon` The icon to display in the column header.
    * - `label` The label to display in the column header.
    *
-   * @return {ItemList}
+   * @return {ItemList<{ name: string, icon: string, label: import('mithril').Children }>}
    */
   notificationMethods() {
     const items = new ItemList();
@@ -199,7 +197,7 @@ export default class NotificationGrid extends Component {
    * - `icon` The icon to display in the notification grid row.
    * - `label` The label to display in the notification grid row.
    *
-   * @return {ItemList}
+   * @return {ItemList<{ name: string, icon: string, label: import('mithril').Children}>}
    */
   notificationTypes() {
     const items = new ItemList();
@@ -207,7 +205,7 @@ export default class NotificationGrid extends Component {
     items.add('discussionRenamed', {
       name: 'discussionRenamed',
       icon: 'fas fa-pencil-alt',
-      label: app.translator.trans('core.forum.settings.notify_discussion_renamed_label')
+      label: app.translator.trans('core.forum.settings.notify_discussion_renamed_label'),
     });
 
     return items;

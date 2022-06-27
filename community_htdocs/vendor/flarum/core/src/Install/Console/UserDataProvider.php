@@ -3,14 +3,17 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Install\Console;
 
+use Flarum\Install\AdminUser;
+use Flarum\Install\BaseUrl;
+use Flarum\Install\DatabaseConfig;
+use Flarum\Install\Installation;
+use Illuminate\Support\Str;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -24,6 +27,7 @@ class UserDataProvider implements DataProviderInterface
 
     protected $questionHelper;
 
+    /** @var BaseUrl */
     protected $baseUrl;
 
     public function __construct(InputInterface $input, OutputInterface $output, QuestionHelper $questionHelper)
@@ -33,75 +37,92 @@ class UserDataProvider implements DataProviderInterface
         $this->questionHelper = $questionHelper;
     }
 
-    public function getDatabaseConfiguration()
+    public function configure(Installation $installation): Installation
     {
-        $host = $this->ask('Database host:');
-        $port = '3306';
+        return $installation
+            ->debugMode(false)
+            ->baseUrl($this->getBaseUrl())
+            ->databaseConfig($this->getDatabaseConfiguration())
+            ->adminUser($this->getAdminUser())
+            ->settings($this->getSettings());
+    }
 
-        if (str_contains($host, ':')) {
+    private function getDatabaseConfiguration(): DatabaseConfig
+    {
+        $host = $this->ask('Database host (required):');
+        $port = 3306;
+
+        if (Str::contains($host, ':')) {
             list($host, $port) = explode(':', $host, 2);
         }
 
-        return [
-            'driver'   => 'mysql',
-            'host'     => $host,
-            'port'     => $port,
-            'database' => $this->ask('Database name:'),
-            'username' => $this->ask('Database user:'),
-            'password' => $this->secret('Database password:'),
-            'prefix'   => $this->ask('Prefix:'),
-        ];
+        return new DatabaseConfig(
+            'mysql',
+            $host,
+            intval($port),
+            $this->ask('Database name (required):'),
+            $this->ask('Database user (required):'),
+            $this->secret('Database password:'),
+            $this->ask('Prefix:')
+        );
     }
 
-    public function getBaseUrl()
+    private function getBaseUrl(): BaseUrl
     {
-        return $this->baseUrl = rtrim($this->ask('Base URL:'), '/');
+        $baseUrl = $this->ask('Base URL (Default: http://flarum.localhost):', 'http://flarum.localhost');
+
+        return $this->baseUrl = BaseUrl::fromString($baseUrl);
     }
 
-    public function getAdminUser()
+    private function getAdminUser(): AdminUser
     {
-        return [
-            'username'              => $this->ask('Admin username:'),
-            'password'              => $this->secret('Admin password:'),
-            'password_confirmation' => $this->secret('Admin password (confirmation):'),
-            'email'                 => $this->ask('Admin email address:'),
-        ];
+        return new AdminUser(
+            $this->ask('Admin username (Default: admin):', 'admin'),
+            $this->askForAdminPassword(),
+            $this->ask('Admin email address (required):')
+        );
     }
 
-    public function getSettings()
+    private function askForAdminPassword()
+    {
+        while (true) {
+            $password = $this->secret('Admin password (required >= 8 characters):');
+
+            if (strlen($password) < 8) {
+                $this->validationError('Password must be at least 8 characters.');
+                continue;
+            }
+
+            $confirmation = $this->secret('Admin password (confirmation):');
+
+            if ($password !== $confirmation) {
+                $this->validationError('The password did not match its confirmation.');
+                continue;
+            }
+
+            return $password;
+        }
+    }
+
+    private function getSettings()
     {
         $title = $this->ask('Forum title:');
-        $baseUrl = $this->baseUrl ?: 'http://localhost';
 
         return [
-            'allow_post_editing' => 'reply',
-            'allow_renaming' => '10',
-            'allow_sign_up' => '1',
-            'custom_less' => '',
-            'default_locale' => 'en',
-            'default_route' => '/all',
-            'extensions_enabled' => '[]',
             'forum_title' => $title,
-            'forum_description' => '',
-            'mail_driver' => 'mail',
-            'mail_from' => 'noreply@'.preg_replace('/^www\./i', '', parse_url($baseUrl, PHP_URL_HOST)),
-            'theme_colored_header' => '0',
-            'theme_dark_mode' => '0',
-            'theme_primary_color' => '#4D698E',
-            'theme_secondary_color' => '#4D698E',
-            'welcome_message' => 'This is beta software and you should not use it in production.',
+            'mail_from' => $this->baseUrl->toEmail('noreply'),
             'welcome_title' => 'Welcome to '.$title,
         ];
     }
 
-    protected function ask($question, $default = null)
+    private function ask($question, $default = null)
     {
         $question = new Question("<question>$question</question> ", $default);
 
         return $this->questionHelper->ask($this->input, $this->output, $question);
     }
 
-    protected function secret($question)
+    private function secret($question)
     {
         $question = new Question("<question>$question</question> ");
 
@@ -110,8 +131,9 @@ class UserDataProvider implements DataProviderInterface
         return $this->questionHelper->ask($this->input, $this->output, $question);
     }
 
-    public function isDebugMode(): bool
+    private function validationError($message)
     {
-        return false;
+        $this->output->writeln("<error>$message</error>");
+        $this->output->writeln('Please try again.');
     }
 }

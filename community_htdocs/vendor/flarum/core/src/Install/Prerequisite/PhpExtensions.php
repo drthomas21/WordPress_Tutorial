@@ -3,15 +3,15 @@
 /*
  * This file is part of Flarum.
  *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For detailed copyright and license information, please view the
+ * LICENSE file that was distributed with this source code.
  */
 
 namespace Flarum\Install\Prerequisite;
 
-class PhpExtensions extends AbstractPrerequisite
+use Illuminate\Support\Collection;
+
+class PhpExtensions implements PrerequisiteInterface
 {
     protected $extensions;
 
@@ -20,14 +20,15 @@ class PhpExtensions extends AbstractPrerequisite
         $this->extensions = $extensions;
     }
 
-    public function check()
+    public function problems(): Collection
     {
-        foreach ($this->extensions as $extension) {
-            if (! extension_loaded($extension)) {
-                $this->errors[] = [
+        return (new Collection($this->extensions))
+            ->reject(function ($extension) {
+                return extension_loaded($extension);
+            })->map(function ($extension) {
+                return [
                     'message' => "The PHP extension '$extension' is required.",
                 ];
-            }
-        }
+            });
     }
 }

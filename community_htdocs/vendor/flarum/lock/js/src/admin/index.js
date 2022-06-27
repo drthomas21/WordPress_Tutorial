@@ -1,13 +1,13 @@
-import { extend } from 'flarum/extend';
-import app from 'flarum/app';
-import PermissionGrid from 'flarum/components/PermissionGrid';
+import app from 'flarum/admin/app';
 
 app.initializers.add('lock', () => {
-  extend(PermissionGrid.prototype, 'moderateItems', items => {
-    items.add('lock', {
+  app.extensionData.for('flarum-lock').registerPermission(
+    {
       icon: 'fas fa-lock',
       label: app.translator.trans('flarum-lock.admin.permissions.lock_discussions_label'),
-      permission: 'discussion.lock'
-    }, 95);
-  });
+      permission: 'discussion.lock',
+    },
+    'moderate',
+    95
+  );
 });
